@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+orjson = "==3.4.0"
+cryptography = "==3.3.1"
+flake8 = "*"
+
+[dev-packages]
+mypy = "==0.711"
+black = "==18.9b0"
+
+[requires]
+python_version = "3"
+
+[scripts]
+lint = "mypy ./ --ignore-missing-imports"
+fmt = "black --py36 -v --line-length 80 ."
+fmt-check = "black --py36 -v --line-length 80 --check ."
