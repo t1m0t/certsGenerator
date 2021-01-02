@@ -4,4 +4,4 @@ certs/*
 __pycache__
 dist/
 certs_generator.egg-info/
-pypi-pass
+build/lib
