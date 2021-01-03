@@ -1,17 +1,18 @@
 import os
+import sys
 import datetime
 from ipaddress import IPv4Address
 
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from storage import getCertConf
-from storage import getFileExtensions
-from storage import loadFile
+from certsGenerator.storage import getCertConf
+from certsGenerator.storage import getFileExtensions
+from certsGenerator.storage import loadFile
 
-from globals_conf import nameAttributesMapping
-from globals_conf import extentionMapping
-from globals_conf import key_usage
+from certsGenerator.globals_conf import nameAttributesMapping
+from certsGenerator.globals_conf import extentionMapping
+from certsGenerator.globals_conf import key_usage
 
 
 def buildNameAttributes(snaConf: dict) -> x509.Name:
@@ -69,13 +70,16 @@ def setNameAttributes(
                     builder = builder.issuer_name(name_issuer)
                 else:
                     raise ValueError("issuer_name_attributes not found")
+                    sys.exit()
         else:
             sn = subjectConf["subject_name"]
             raise ValueError(
                 f"certname {certName} has to be the same as in the conf {sn} to be found"
             )
+            sys.exit()
     else:
         raise ValueError("subject_name_attributes not found in conf")
+        sys.exit()
 
     return builder
 
@@ -92,6 +96,7 @@ def setSAN(SANConf: dict, builder: x509.CertificateBuilder) -> x509.CertificateB
             el = extentionMapping["IPAddress"](IPv4Address(item.get("IPAddressV4")))
         else:
             raise ValueError(f"{item} not supported")
+            sys.exit()
         elList.append(el)
 
     return builder.add_extension(
@@ -106,6 +111,7 @@ def setKeyUsage(
     for el in extConf["items"]:
         if el not in key_usage:
             raise ValueError(f"{el} not found in allowed key_usage")
+            sys.exit()
     # set conf
     kwargs = {}
     for el in key_usage:
@@ -129,7 +135,8 @@ def setBasicConstraints(
     isCritical = True if extConf["critical"] == "true" else False
 
     return builder.add_extension(
-        x509.BasicConstraints(ca=isCA, path_length=pathLenght), critical=isCritical
+        x509.BasicConstraints(ca=isCA, path_length=pathLenght),
+        critical=isCritical,
     )
 
 
@@ -163,18 +170,24 @@ def setNameConstraints(
 
 
 def setSubjectKeyIdentifier(
-    extConf: dict, builder: x509.CertificateBuilder, key: ec.EllipticCurvePrivateKey
+    extConf: dict,
+    builder: x509.CertificateBuilder,
+    key: ec.EllipticCurvePrivateKey,
 ) -> x509.CertificateBuilder:
     if extConf["set"] == "true":
         isCritical = True if extConf["critical"] == "true" else False
 
     return builder.add_extension(
-        x509.SubjectKeyIdentifier.from_public_key(key.public_key()), critical=isCritical
+        x509.SubjectKeyIdentifier.from_public_key(key.public_key()),
+        critical=isCritical,
     )
 
 
 def setAuthorityKeyIdentifier(
-    generalConf: dict, certConf: dict, extConf: dict, builder: x509.CertificateBuilder
+    generalConf: dict,
+    certConf: dict,
+    extConf: dict,
+    builder: x509.CertificateBuilder,
 ) -> x509.CertificateBuilder:
     # we need to get the SubjectKeyIdentifier of the issuer (aka authority)
     # we'll get it from the public key
@@ -192,6 +205,7 @@ def setAuthorityKeyIdentifier(
         issuer_cert = x509.load_pem_x509_certificate(pem_data)  # type: ignore
     else:
         raise ValueError(f"can't find issuer crt file {issuerCrtFile}")
+        sys.exit()
     # get subject key id from issuer
     ski_ext = issuer_cert.extensions.get_extension_for_class(x509.SubjectKeyIdentifier)
     # add the value to the extension in the builder
@@ -237,5 +251,6 @@ def setExtensions(
                     )
             else:
                 raise ValueError(f"incorrect or not implemented extension {k}")
+                sys.exit()
 
     return builder

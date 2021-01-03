@@ -1,5 +1,6 @@
 import os
 import stat
+import sys
 import orjson
 from typing import Union
 from orjson import JSONEncodeError
@@ -8,10 +9,10 @@ from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from helpers import checkConf
+from certsGenerator.helpers import checkConf
 
-from globals_conf import curveMapping
-from globals_conf import serialization_mapping
+from certsGenerator.globals_conf import curveMapping
+from certsGenerator.globals_conf import serialization_mapping
 
 
 def loadConf(fileName: str, format: str = "json") -> dict:
@@ -21,10 +22,11 @@ def loadConf(fileName: str, format: str = "json") -> dict:
             try:
                 generalConf = orjson.loads(file.read())
                 checkConf(generalConf)
-            except JSONEncodeError:
-                print(f"enable to load string from {fileName}")
-    except OSError:
-        print(f"failed to open {fileName}")
+            except JSONEncodeError as e:
+                sys.exit(f"enable to load string from {fileName}: {e}")
+    except OSError as e:
+        print("please make sure to execute the script like this: \"python src/main.py\"")
+        sys.exit(f"failed to open {fileName}: {e}")
     return generalConf
 
 
@@ -33,8 +35,8 @@ def loadFile(fileName: str) -> bytes:
     try:
         with open(fileName, mode="rb") as f:
             content = f.read()
-    except OSError:
-        print(f"failed to open {fileName}")
+    except OSError as e:
+        sys.exit(f"failed to open {fileName}: {e}")
     return content
 
 
@@ -72,10 +74,10 @@ def storePrivateKey(
             )
         try:
             os.chmod(path, mode=0o600)
-        except OSError:
-            print(f"can't set permission {stat.S_IRUSR} on {path}")
-    except OSError:
-        print(f"failed to write file {path}")
+        except OSError as e:
+            sys.exit(f"can't set permission {stat.S_IRUSR} on {path}: {e}")
+    except OSError as e:
+        sys.exit(f"failed to write file {path}: {e}")
 
 
 def storePublicKey(path: str, cert: x509.Certificate) -> None:
@@ -83,12 +85,13 @@ def storePublicKey(path: str, cert: x509.Certificate) -> None:
         with open(path, "wb") as f:
             f.write(cert.public_bytes(serialization.Encoding.PEM))
     except OSError:
-        print(f"can't save public key in {path}")
+        sys.exit(f"can't save public key in {path}")
 
 
 def getPrivateKey(certConf: dict, extensions: dict) -> ec.EllipticCurvePrivateKey:
     if "storage" not in certConf.keys():
         raise ValueError(f"key not found in {certConf}")
+        sys.exit()
     path = certConf["storage"]["path"]
     fileName = certConf["storage"]["fileName"]
     certName = certConf["subject_name"]
@@ -119,9 +122,6 @@ def getPrivateKey(certConf: dict, extensions: dict) -> ec.EllipticCurvePrivateKe
     return private_key  # type: ignore
 
 
-from storage import loadFile
-
-
 def getPassphrase(certConf: dict) -> bytes:
     # get passphrase
     p = certConf["private_key"]["passphrase"]["path"]
@@ -131,7 +131,7 @@ def getPassphrase(certConf: dict) -> bytes:
 
     if not type(passphrase) == bytes:
         raise ValueError("passphrase should be of bytes type")
-
+        sys.exit()
     return passphrase
 
 

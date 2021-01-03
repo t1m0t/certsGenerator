@@ -1,4 +1,5 @@
 import datetime
+import sys
 
 
 def checkConf(generalConf: dict):
@@ -13,6 +14,7 @@ def checkConf(generalConf: dict):
     for k, v in names.items():
         if v > 1:
             raise ValueError(f"Configuration file error: {k} appears {v} times")
+            sys.exit()
 
     # check not_valid_before not_valid_after
     for certConf in certs:
@@ -27,3 +29,4 @@ def checkConf(generalConf: dict):
             )
         else:
             raise ValueError(f'invalid value from {nvb}, should be of int or "now"')
+            sys.exit()

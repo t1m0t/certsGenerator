@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 
+
 nameAttributesMapping = {
     "COUNTRY_NAME": NameOID.COUNTRY_NAME,
     "STATE_OR_PROVINCE_NAME": NameOID.STATE_OR_PROVINCE_NAME,

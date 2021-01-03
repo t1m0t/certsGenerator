@@ -1,7 +1,10 @@
 passphrase/
 venv/
-certs/*
-__pycache__
+certs/
+__pycache__/
 dist/
-certs_generator.egg-info/
-build/lib
+certsGenerator.egg-info/
+.vscode/
+coverage.xml
+.coverage
+.pytest_cache
