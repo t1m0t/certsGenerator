@@ -12,7 +12,8 @@ from certsGenerator.storage import loadFile
 
 from certsGenerator.globals_conf import nameAttributesMapping
 from certsGenerator.globals_conf import extentionMapping
-from certsGenerator.globals_conf import key_usage
+from certsGenerator.globals_conf import keyUsage
+from certsGenerator.globals_conf import extendedKeyUsageMapping
 
 
 def buildNameAttributes(snaConf: dict) -> x509.Name:
@@ -109,12 +110,12 @@ def setKeyUsage(
 ) -> x509.CertificateBuilder:
     # check correctness of conf
     for el in extConf["items"]:
-        if el not in key_usage:
-            raise ValueError(f"{el} not found in allowed key_usage")
+        if el not in keyUsage:
+            raise ValueError(f"{el} not found in allowed keyUsage")
             sys.exit()
     # set conf
     kwargs = {}
-    for el in key_usage:
+    for el in keyUsage:
         if el in extConf["items"]:
             kwargs[el] = True
         else:
@@ -123,6 +124,22 @@ def setKeyUsage(
     isCritical = True if extConf["critical"] == "true" else False
 
     return builder.add_extension(x509.KeyUsage(**kwargs), critical=isCritical)
+
+
+def setExtendedKeyUsage(
+    extConf: dict, builder: x509.CertificateBuilder
+) -> x509.CertificateBuilder:
+    eku = []
+    for el in extConf["items"]:
+        if el.upper() not in extendedKeyUsageMapping.keys():
+            raise ValueError(f"{el} not found in allowed extendedKeyUsage")
+            sys.exit()
+        else:
+            eku.append(extendedKeyUsageMapping[el.upper()])
+
+    isCritical = True if extConf["critical"] == "true" else False
+
+    return builder.add_extension(x509.ExtendedKeyUsage(eku), critical=isCritical)
 
 
 def setBasicConstraints(
@@ -231,6 +248,10 @@ def setExtensions(
                 builder = setSAN(SANConf=extensionsConf[k], builder=builder)
             elif k == "KeyUsage":
                 builder = setKeyUsage(extConf=extensionsConf[k], builder=builder)
+            elif k == "ExtendedKeyUsage":
+                builder = setExtendedKeyUsage(
+                    extConf=extensionsConf[k], builder=builder
+                )
             elif k == "BasicConstraints":
                 builder = setBasicConstraints(
                     extConf=extensionsConf[k], builder=builder

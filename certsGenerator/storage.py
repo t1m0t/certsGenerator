@@ -25,7 +25,7 @@ def loadConf(fileName: str, format: str = "json") -> dict:
             except JSONEncodeError as e:
                 sys.exit(f"enable to load string from {fileName}: {e}")
     except OSError as e:
-        print("please make sure to execute the script like this: \"python src/main.py\"")
+        print('please make sure to execute the script like this: "python src/main.py"')
         sys.exit(f"failed to open {fileName}: {e}")
     return generalConf
 
@@ -103,7 +103,8 @@ def getPrivateKey(certConf: dict, extensions: dict) -> ec.EllipticCurvePrivateKe
     private_key = None
     if not os.path.exists(path):
         os.makedirs(path)
-    elif os.path.exists(keyFile):
+
+    if os.path.exists(keyFile):
         private_key_bytes = loadFile(fileName=keyFile)
         password = getPassphrase(certConf)
         if password:
@@ -112,7 +113,7 @@ def getPrivateKey(certConf: dict, extensions: dict) -> ec.EllipticCurvePrivateKe
             )  # type: ignore
         else:
             private_key = serialization.load_pem_private_key(
-                private_key_bytes
+                private_key_bytes, password=password
             )  # type: ignore
     else:
         private_key = ec.generate_private_key(
@@ -124,15 +125,19 @@ def getPrivateKey(certConf: dict, extensions: dict) -> ec.EllipticCurvePrivateKe
 
 def getPassphrase(certConf: dict) -> bytes:
     # get passphrase
-    p = certConf["private_key"]["passphrase"]["path"]
-    n = certConf["private_key"]["passphrase"]["fileName"]
-    passFile = f"{p}/{n}"
-    passphrase = loadFile(passFile)
+    if certConf.get("private_key") and certConf.get("private_key").get("passphrase"):
+        p = certConf["private_key"]["passphrase"]["path"]
+        n = certConf["private_key"]["passphrase"]["fileName"]
+        passFile = f"{p}/{n}"
+        passphrase = loadFile(passFile)
 
-    if not type(passphrase) == bytes:
-        raise ValueError("passphrase should be of bytes type")
-        sys.exit()
-    return passphrase
+        if not type(passphrase) == bytes:
+            raise ValueError("passphrase should be of bytes type")
+            sys.exit()
+        return passphrase
+    else:
+        passphrase = None
+        return passphrase
 
 
 def getFileExtensions(generalConf: dict) -> dict:

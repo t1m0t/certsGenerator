@@ -20,8 +20,8 @@ python_version = "3"
 
 [scripts]
 lint = "mypy ./ --ignore-missing-imports"
-fmt = "black -t py38 -v --line-length 88 ./certsGenerator"
-fmt-check = "black -t py38 -v --line-length 88 --check ./certsGenerator"
+fmt = "black -t py38 -v --line-length 88 ./certsGenerator ./tests --exclude __pycache__"
+fmt-check = "black -t py38 -v --line-length 88 --check ./certsGenerator ./tests --exclude __pycache__"
 test = "pytest -v --cov=./certsGenerator --cov-report=term-missing -v --cov-report=xml"
 
 [pipenv]

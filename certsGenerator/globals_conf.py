@@ -34,7 +34,7 @@ serialization_mapping = {
 
 hash_mapping = {"sha512": hashes.SHA512(), "sha256": hashes.SHA256()}
 
-key_usage = set(
+keyUsage = set(
     [
         "digital_signature",
         "content_commitment",
@@ -47,3 +47,13 @@ key_usage = set(
         "decipher_only",
     ]
 )
+
+extendedKeyUsageMapping = {
+    "SERVER_AUTH": x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
+    "CLIENT_AUTH": x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH,
+    "CODE_SIGNING": x509.oid.ExtendedKeyUsageOID.CODE_SIGNING,
+    "EMAIL_PROTECTION": x509.oid.ExtendedKeyUsageOID.EMAIL_PROTECTION,
+    "TIME_STAMPING": x509.oid.ExtendedKeyUsageOID.TIME_STAMPING,
+    "OCSP_SIGNING": x509.oid.ExtendedKeyUsageOID.OCSP_SIGNING,
+    "ANY_EXTENDED_KEY_USAGE": x509.oid.ExtendedKeyUsageOID.ANY_EXTENDED_KEY_USAGE,
+}

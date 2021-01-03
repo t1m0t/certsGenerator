@@ -30,7 +30,7 @@
                     "sign_with_alg": "sha512",
                     "passphrase": {
                         "path": "passphrase",
-                        "fileName": "root"
+                        "fileName": "fortest"
                     }
                 },
                 "subject_name": "root-ca",

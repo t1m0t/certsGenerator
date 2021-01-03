@@ -13,7 +13,7 @@
                 "type": "root-ca",
                 "is_CA": "true",
                 "storage": {
-                    "path": "../certs/root-ca",
+                    "path": "certs/root-ca",
                     "fileName": "root-ca"
                 },
                 "private_key": {
@@ -30,8 +30,8 @@
                     "format": "PKCS8",
                     "sign_with_alg": "sha512",
                     "passphrase": {
-                        "path": "../passphrase",
-                        "fileName": "root"
+                        "path": "passphrase",
+                        "fileName": "fortest"
                     }
                 },
                 "subject_name": "root-ca",
