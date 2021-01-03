@@ -1,6 +1,6 @@
 # certsGenerator
-[![PYPI](https://img.shields.io/pypi/v/certs-generator.svg)](https://pypi.org/project/certsGenerator/)
-[![PYPI Python Versions](https://img.shields.io/pypi/pyversions/certs_generator.svg)](https://pypi.org/project/certsGenerator/)
+[![PYPI](https://img.shields.io/pypi/v/certsGenerator.svg)](https://pypi.org/project/certsGenerator/)
+[![PYPI Python Versions](https://img.shields.io/pypi/pyversions/certsGenerator.svg)](https://pypi.org/project/certsGenerator/)
 # About the project
 This project:
  - aims to generate certificates from a json configuration file automatically. Just set the configuration properly and execute the script.
