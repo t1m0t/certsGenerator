@@ -20,9 +20,9 @@ python_version = "3"
 
 [scripts]
 lint = "mypy ./ --ignore-missing-imports"
-fmt = "black -t py38 -v --line-length 88 ./src"
-fmt-check = "black -t py38 -v --line-length 88 --check ./src"
-test = "pytest -v --cov=./src --cov-report=term-missing -v --cov-report=xml"
+fmt = "black -t py38 -v --line-length 88 ./certsGenerator"
+fmt-check = "black -t py38 -v --line-length 88 --check ./certsGenerator"
+test = "pytest -v --cov=./certsGenerator --cov-report=term-missing -v --cov-report=xml"
 
 [pipenv]
 allow_prereleases = true
