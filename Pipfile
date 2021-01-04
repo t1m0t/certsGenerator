@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 orjson = "*"
 cryptography = "==3.3.1"
+click = "*"
 
 [dev-packages]
 mypy = "*"

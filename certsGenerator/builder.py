@@ -63,3 +63,5 @@ def createCerts(certConf: dict, generalConf: dict, extensions: dict) -> None:
         )
 
         storePublicKey(path=certFile, cert=cert)
+
+        print(f"cert created in {certFile}")
