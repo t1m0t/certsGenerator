@@ -7,39 +7,22 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from certsGenerator.storage import loadConf
-from certsGenerator.storage import loadFile
-from certsGenerator.storage import getFileExtensions
-from certsGenerator.builder import createCerts
+from certsGenerator.main import CertsGenerator
+from certsGenerator.helpers import loadFile
 
-from .helpers import delDir
+from tests.helpers import delDir
 
 
 class MainTests(unittest.TestCase):
     def test_1_root_ca_generation(self):
         CONF_FILE = "test1.json"
-        generalConf = loadConf(CONF_FILE)
-        fileExt = getFileExtensions(generalConf=generalConf)
+        CertsGenerator(pathToConf=CONF_FILE).run()
 
-        for certConf in generalConf["certs"]:
-            createCerts(
-                certConf=certConf["conf"],
-                generalConf=generalConf,
-                extensions=fileExt,
-            )
         delDir("certs")
 
     def test_2_1_root_and_intermediate_certificate_generation(self):
         CONF_FILE = "test2.json"
-        generalConf = loadConf(CONF_FILE)
-        fileExt = getFileExtensions(generalConf=generalConf)
-
-        for certConf in generalConf["certs"]:
-            createCerts(
-                certConf=certConf["conf"],
-                generalConf=generalConf,
-                extensions=fileExt,
-            )
+        CertsGenerator(pathToConf=CONF_FILE).run()
 
     def test_2_2_check_intermediate_crt_signature(self):
         # conf
@@ -58,5 +41,11 @@ class MainTests(unittest.TestCase):
             cert_to_check.tbs_certificate_bytes,
             ec.ECDSA(hashes.SHA512()),
         )
+
+        delDir("certs")
+
+    def test_3_1_rsa_certs(self):
+        CONF_FILE = "test3.json"
+        CertsGenerator(pathToConf=CONF_FILE).run()
 
         delDir("certs")

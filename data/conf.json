@@ -17,9 +17,7 @@
                 },
                 "private_key": {
                     "algorithm": {
-                        "name": [
-                            "ECDSA"
-                        ],
+                        "name": "ECDSA",
                         "type": "EC",
                         "params": {
                             "curve": "SECP521R1"
@@ -177,7 +175,7 @@
         {
             "name": "postgres-ca",
             "conf": {
-                "type": "postgres-ca",
+                "type": "intermadiate-ca",
                 "storage": {
                     "path": "certs/postgres-ca",
                     "fileName": "postgres-ca"
@@ -266,7 +264,7 @@
         {
             "name": "postgres-server",
             "conf": {
-                "type": "postgres-server",
+                "type": "leaf",
                 "storage": {
                     "path": "certs/postgres-server",
                     "fileName": "postgres-server"
@@ -346,7 +344,7 @@
         {
             "name": "postgres-client",
             "conf": {
-                "type": "postgres-client",
+                "type": "leaf",
                 "storage": {
                     "path": "certs/postgres-client",
                     "fileName": "postgres-client"

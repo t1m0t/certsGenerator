@@ -1,27 +1,21 @@
 import click
 
-from certsGenerator.storage import loadConf
-from certsGenerator.storage import getFileExtensions
-from certsGenerator.builder import createCerts
+from certsGenerator.certManager import CertManager
 
 
 class CertsGenerator():
-    def __init__(self, pathToConf:str):
+    def __init__(self, pathToConf: str):
         self.CONF_FILE = pathToConf
-    
-    def run(self):
-        generalConf = loadConf(self.CONF_FILE)
-        fileExt = getFileExtensions(generalConf=generalConf)
-        for certConf in generalConf["certs"]:
-            createCerts(
-                certConf=certConf["conf"],
-                generalConf=generalConf,
-                extensions=fileExt,
-            )
+
+    def run(self) -> None:
+        cerManager = CertManager(confFile=self.CONF_FILE)
+        for certConf in cerManager.conf.general["certs"]:
+            cerManager.createCerts(certName=certConf["name"])
+
 
 @click.command()
-@click.option('--conf', default="data/conf.json",help="Certs configuration file")
-def cli(conf):
+@click.option('--conf', default="data/conf.json", help="Certs configuration file")
+def cli(conf: str) -> None:
     CertsGenerator(pathToConf=conf).run()
 
 

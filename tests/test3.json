@@ -1,0 +1,185 @@
+{
+    "defaults": {
+        "file_extentions": {
+            "private_key": "key",
+            "certificate_signing_request": "csr",
+            "signed_certificate": "crt"
+        }
+    },
+    "certs": [
+        {
+            "name": "root-ca",
+            "conf": {
+                "type": "root-ca",
+                "storage": {
+                    "path": "certs/root-ca",
+                    "fileName": "root-ca"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "ECDSA"
+                        ],
+                        "type": "EC",
+                        "params": {
+                            "curve": "SECP521R1"
+                        }
+                    },
+                    "encoding": "PEM",
+                    "format": "PKCS8",
+                    "sign_with_alg": "sha512",
+                    "passphrase": {
+                        "path": "passphrase",
+                        "fileName": "fortest"
+                    }
+                },
+                "subject_name": "root-ca",
+                "issuer_name": "root-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 3650,
+                "subject_name_attributes": {
+                    "COUNTRY_NAME": "FR",
+                    "STATE_OR_PROVINCE_NAME": "Val d'Oise",
+                    "LOCALITY_NAME": "Argenteuil",
+                    "ORGANIZATION_NAME": "smartius",
+                    "COMMON_NAME": "root-ca"
+                },
+                "extensions": {
+                    "SubjectAlternativeName": {
+                        "items": [
+                            {
+                                "DNSName": "localhost"
+                            },
+                            {
+                                "DNSName": "dev.local"
+                            },
+                            {
+                                "IPAddressV4": "127.0.0.1"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "KeyUsage": {
+                        "items": [
+                            "key_cert_sign",
+                            "crl_sign"
+                        ],
+                        "critical": "true"
+                    },
+                    "BasicConstraints": {
+                        "ca": "true",
+                        "path_length": "none",
+                        "critical": "true"
+                    },
+                    "NameConstraints": {
+                        "permitted_subtrees": [
+                            {
+                                "type": "DNSName",
+                                "value": "dev.local"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "SubjectKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    },
+                    "AuthorityKeyIdentifier": {
+                        "set": "false",
+                        "critical": "false"
+                    }
+                }
+            }
+        },
+        {
+            "name": "intermadiate-ca",
+            "conf": {
+                "type": "intermadiate-ca",
+                "storage": {
+                    "path": "certs/intermadiate-ca",
+                    "fileName": "intermadiate-ca"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "RSA"
+                        ],
+                        "type": "RSA",
+                        "params": {
+                            "key_size": 4096
+                        }
+                    },
+                    "encoding": "PEM",
+                    "format": "PKCS8",
+                    "sign_with_alg": "sha512"
+                },
+                "subject_name": "intermadiate-ca",
+                "issuer_name": "root-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 1750,
+                "subject_name_attributes": {
+                    "COUNTRY_NAME": "FR",
+                    "STATE_OR_PROVINCE_NAME": "Val d'Oise",
+                    "LOCALITY_NAME": "Argenteuil",
+                    "ORGANIZATION_NAME": "smartius",
+                    "COMMON_NAME": "intermadiate-ca"
+                },
+                "extensions": {
+                    "SubjectAlternativeName": {
+                        "items": [
+                            {
+                                "DNSName": "localhost"
+                            },
+                            {
+                                "DNSName": "dev.local"
+                            },
+                            {
+                                "IPAddressV4": "127.0.0.1"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "KeyUsage": {
+                        "items": [
+                            "key_cert_sign",
+                            "crl_sign",
+                            "digital_signature"
+                        ],
+                        "critical": "true"
+                    },
+                    "ExtendedKeyUsage": {
+                        "items": [
+                            "server_auth",
+                            "client_auth"
+                        ],
+                        "critical": "true"
+                    },
+                    "BasicConstraints": {
+                        "ca": "true",
+                        "path_length": "none",
+                        "critical": "true"
+                    },
+                    "NameConstraints": {
+                        "permitted_subtrees": [
+                            {
+                                "type": "DNSName",
+                                "value": "dev.local"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "SubjectKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    },
+                    "AuthorityKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    }
+                }
+            }
+        }
+    ]
+}
