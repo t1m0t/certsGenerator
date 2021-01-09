@@ -7,6 +7,7 @@ from orjson import JSONEncodeError
 
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
 
@@ -15,11 +16,15 @@ from certsGenerator.helpers import loadFile
 from certsGenerator.certBuilder import CertBuilder
 
 
-class CertManager():
+class CertManager:
     def __init__(self, confFile: str):
         self.conf: Conf = Conf(confFile=confFile)
 
-    def storePrivateKey(self, certName: str, private_key: Union[ec.EllipticCurvePrivateKey, rsa.RSAPrivateKey]) -> None:
+    def storePrivateKey(
+        self,
+        certName: str,
+        private_key: Union[ec.EllipticCurvePrivateKey, rsa.RSAPrivateKey],
+    ) -> None:
         certConf = self.conf.getCert(certName=certName)
         # get passphrase
         passphrase = self.conf.getPassphrase(certName=certName)
@@ -27,7 +32,7 @@ class CertManager():
         if passphrase:
             encryption_algorithm = serialization.BestAvailableEncryption(passphrase)
         else:
-            encryption_algorithm = serialization.NoEncryption()  # type: ignore
+            encryption_algorithm = serialization.NoEncryption()
 
         # get other params from conf
         path = self.conf.getCertPath(certName=certName, ext="private_key")
@@ -38,12 +43,9 @@ class CertManager():
                 encoding = self.conf.serialization_mapping[encoding]
                 fmt = self.conf.serialization_mapping[key_format]
                 f.write(
-                    # mypy type issue here
-                    # in vscode private_key has no private_bytes method
-                    # but python console shows one
                     private_key.private_bytes(  # type: ignore
                         encoding=encoding,
-                        format=fmt,  # type: ignore
+                        format=fmt,
                         encryption_algorithm=encryption_algorithm,
                     )
                 )
@@ -62,7 +64,9 @@ class CertManager():
         except OSError:
             sys.exit(f"can't save public key in {path}")
 
-    def getPrivateKey(self, certName: str) -> Union[ec.EllipticCurvePrivateKey, rsa.RSAPrivateKey]:
+    def getPrivateKey(
+        self, certName: str
+    ) -> Union[ec.EllipticCurvePrivateKey, rsa.RSAPrivateKey]:
         certConf = self.conf.getCert(certName=certName)
         if "storage" not in certConf.keys():
             raise ValueError(f"key not found in {certConf}")
@@ -78,29 +82,25 @@ class CertManager():
             os.makedirs(path)
 
         if os.path.exists(keyFile):
+            print("========== Private key file already exist")
             private_key_bytes = loadFile(fileName=keyFile)
             password = self.conf.getPassphrase(certName=certName)
-            if password:
-                private_key = serialization.load_pem_private_key(
-                    private_key_bytes, password=password
-                )  # type: ignore
-            else:
-                private_key = serialization.load_pem_private_key(
-                    private_key_bytes, password=password
-                )  # type: ignore
+            private_key = serialization.load_pem_private_key(  # type: ignore
+                private_key_bytes, password=password
+            )
         else:
-            if certConf["private_key"]["algorithm"]["type"] == "EC":
-                curve_conf = certConf["private_key"]["algorithm"]["params"]["curve"]
-                private_key = ec.generate_private_key(
-                    curve=self.conf.curveMapping[curve_conf]
-                )  # type: ignore
-            elif certConf["private_key"]["algorithm"]["type"] == "RSA":
-                rsa_params = certConf["private_key"]["algorithm"]["params"]
-                private_key = rsa.generate_private_key(
-                    public_exponent=65537,
-                    key_size=rsa_params["key_size"]
+            print("========== Creating private key")
+            key_type = certConf["private_key"]["algorithm"]["type"]
+            params = certConf["private_key"]["algorithm"]["params"]
+            if key_type == "EC":
+                private_key = ec.generate_private_key(  # type: ignore
+                    curve=self.conf.curveMapping[params["curve"]]
                 )
-            self.storePrivateKey(certName=certName, private_key=private_key)
+            elif key_type == "RSA":
+                private_key = rsa.generate_private_key(  # type: ignore
+                    public_exponent=65537, key_size=int(params["key_size"])
+                )
+            self.storePrivateKey(certName=certName, private_key=private_key)  # type: ignore
         return private_key  # type: ignore
 
     def createCerts(self, certName: str) -> None:
@@ -109,19 +109,51 @@ class CertManager():
         private_key = self.getPrivateKey(certName=certName)
 
         # regarding cert
-        path = certConf["storage"]["path"]
-        fileName = certConf["storage"]["fileName"]
-        crtExt = self.conf.fileExtenstions["signed_certificate"]
-        certFile = f"{path}/{fileName}.{crtExt}"
-        # check if cert exists
+        certFile = self.conf.getCertPath(certName=certName, ext="signed_certificate")
+        issuer_name = certConf["issuer_name"]
+        # check if cert exists, otherwise create it
         if not os.path.exists(certFile):
-            # but to create the cert, we need issuer key
-            issuer_name = certConf["issuer_name"]
+            print("========== Create cert file")
+            # but to create the cert, we need issuer key to sign it
             issuer_private_key = self.getPrivateKey(certName=issuer_name)
             # ok then we build the cert
             subject_name = certConf["subject_name"]
-            cert = CertBuilder(certName=subject_name, conf=self.conf, private_key=private_key).certificate
+            ski = x509.SubjectKeyIdentifier.from_public_key(private_key.public_key())
+            cert = CertBuilder(certName=subject_name, conf=self.conf, ski=ski).builder
+            cert = cert.public_key(private_key.public_key())
+            # now sign the cert with the issuer private key
+            hashAlg = self.conf.hash_mapping[certConf["private_key"]["sign_with_alg"]]
+            cert = cert.sign(private_key=issuer_private_key, algorithm=hashAlg)  # type: ignore
+            # now store the cert
+            self.storePublicKey(certName=certName, cert=cert)  # type: ignore
+            print(
+                f"========== certs created for {certName} with crt signed by {issuer_name}"
+            )
+        else:
+            print("========== Cert file already exists")
 
-            self.storePublicKey(certName=certName, cert=cert)
+        self._checkSignature(subjectName=certName, issuerName=issuer_name)
 
-            print(f"cert created in {certFile}")
+    def _checkSignature(self, subjectName: str, issuerName: str) -> None:
+        # conf
+        print(f"========== checking signature of {subjectName}")
+        issuerCrtFile = self.conf.getCertPath(
+            certName=issuerName, ext="signed_certificate"
+        )
+        subjectCrtFile = self.conf.getCertPath(
+            certName=subjectName, ext="signed_certificate"
+        )
+        # load data
+        pem_issuer_public_key = loadFile(fileName=issuerCrtFile)
+        pem_subject_public_key = loadFile(fileName=subjectCrtFile)
+        # check
+        issuer_public_key = x509.load_pem_x509_certificate(  # type: ignore
+            pem_issuer_public_key
+        ).public_key()
+        cert_to_check = x509.load_pem_x509_certificate(pem_subject_public_key)  # type: ignore
+        issuer_public_key.verify(  # type: ignore
+            cert_to_check.signature,
+            cert_to_check.tbs_certificate_bytes,
+            ec.ECDSA(cert_to_check.signature_hash_algorithm),  # type: ignore
+        )
+        print("========== signature OK")

@@ -2,7 +2,7 @@ import datetime
 import sys
 
 from orjson import loads, JSONEncodeError
-from typing import Callable
+from typing import Callable, Union
 
 from cryptography import x509
 from cryptography.x509.oid import NameOID, ExtensionOID, ExtendedKeyUsageOID
@@ -17,18 +17,20 @@ checkRegistry = []
 
 class MetaRegistry(type):
     @classmethod
-    def __prepare__(mcl, name, bases):
-        def register_check(r) -> Callable:
+    def __prepare__(mcl, name, bases):  # type: ignore
+        def register_check(r) -> Callable:  # type: ignore
             def deco(f: Callable) -> Callable:
                 checkRegistry.append(f)
                 return f
+
             return deco
+
         d = dict()
-        d['register_check'] = register_check
+        d["register_check"] = register_check
         return d
 
-    def __new__(mcl, name, bases, dct):
-        del dct['register_check']
+    def __new__(mcl, name, bases, dct):  # type: ignore
+        del dct["register_check"]
         cls = super().__new__(mcl, name, bases, dct)
         return cls
 
@@ -46,8 +48,8 @@ class Conf(object, metaclass=MetaRegistry):
             if cert["name"] == certName:
                 conf = cert
                 break
-        if not(len(conf) > 0):
-            raise ValueError(f"cert name \"{certName}\" not found")
+        if not (len(conf) > 0):
+            raise ValueError(f'cert name "{certName}" not found')
         return conf["conf"]
 
     def get(self, certName: str, field: str, isExt: bool = True) -> dict:
@@ -73,10 +75,10 @@ class Conf(object, metaclass=MetaRegistry):
         path = certConf["storage"]["path"]
         return path
 
-    def getPassphrase(self, certName: str) -> bytes:
+    def getPassphrase(self, certName: str) -> Union[bytes, None]:
         # get passphrase
         certConf = self.getCert(certName)
-        if certConf.get("private_key") and certConf.get("private_key").get("passphrase"):
+        if certConf.get("private_key") and certConf.get("private_key").get("passphrase"):  # type: ignore
             p = certConf["private_key"]["passphrase"]["path"]
             n = certConf["private_key"]["passphrase"]["fileName"]
             passFile = f"{p}/{n}"
@@ -87,7 +89,7 @@ class Conf(object, metaclass=MetaRegistry):
                 sys.exit()
             return passphrase
         else:
-            passphrase = None
+            passphrase = None  # type: ignore
             return passphrase
 
     def _load(self, fileName: str) -> dict:
@@ -99,7 +101,9 @@ class Conf(object, metaclass=MetaRegistry):
                 except JSONEncodeError as e:
                     sys.exit(f"enable to load string from {fileName}: {e}")
         except OSError as e:
-            print('please make sure to execute the script like this: "python src/main.py"')
+            print(
+                'please make sure to execute the script like this: "python src/main.py"'
+            )
             sys.exit(f"failed to open {fileName}: {e}")
         return generalConf
 
@@ -110,7 +114,7 @@ class Conf(object, metaclass=MetaRegistry):
         for fun in checkRegistry:
             fun()
 
-    @register_check  # noqa: F821
+    @register_check  # type: ignore
     def _checkRedundantNames(self) -> None:
         # check if no redundant certs names
         certs = self.general["certs"]
@@ -125,7 +129,7 @@ class Conf(object, metaclass=MetaRegistry):
                 raise ValueError(f"Configuration file error: {k} appears {v} times")
                 sys.exit()
 
-    @register_check  # noqa: F821
+    @register_check  # type: ignore
     def _checkNotValidDate(self) -> None:
         # check not_valid_before not_valid_after
         certs = self.general["certs"]
@@ -143,7 +147,7 @@ class Conf(object, metaclass=MetaRegistry):
                 raise ValueError(f'invalid value from {nvb}, should be of int or "now"')
                 sys.exit()
 
-    @register_check  # noqa: F821
+    @register_check  # type: ignore
     def _checkCertName(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
@@ -155,7 +159,7 @@ class Conf(object, metaclass=MetaRegistry):
                 )
                 sys.exit()
 
-    @register_check  # noqa: F821
+    @register_check  # type: ignore
     def _checkKeyUsage(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
@@ -164,7 +168,7 @@ class Conf(object, metaclass=MetaRegistry):
                     raise ValueError(f"{ku} not found in allowed keyUsage")
                 sys.exit()
 
-    @register_check  # noqa: F821
+    @register_check  # type: ignore
     def _checkExtendedKeyUsage(self) -> None:
         certs = self.general["certs"]
         for cert in certs:

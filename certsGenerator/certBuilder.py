@@ -13,21 +13,26 @@ from certsGenerator.conf import Conf
 from certsGenerator.helpers import loadFile
 
 
-class CertBuilder():
-    def __init__(self, certName: str, conf: Conf, private_key: Union[rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey]):
-        self.key = private_key
-        self.builder = x509.CertificateBuilder()
-        self.conf: Conf = conf
+class CertBuilder:
+    def __init__(self, certName: str, conf: Conf, ski: x509.SubjectKeyIdentifier):
         self.certName = certName
+        self.conf: Conf = conf
+        self.ski = ski
+
+        self.builder = x509.CertificateBuilder()
         self.certificate: x509.Certificate
         self._setAll()
 
     def buildSubjectNameAttributes(self, certName: str) -> x509.Name:
         nameAttributesMapping = self.conf.nameAttributesMapping
         nameAttrList = []
-        snaConf = self.conf.get(certName=certName, field="subject_name_attributes", isExt=False)
+        snaConf = self.conf.get(
+            certName=certName, field="subject_name_attributes", isExt=False
+        )
         for k in snaConf.keys():
-            nameAttrList.append(x509.NameAttribute(nameAttributesMapping[k], snaConf[k]))
+            nameAttrList.append(
+                x509.NameAttribute(nameAttributesMapping[k], snaConf[k])
+            )
         name_attr = x509.Name(nameAttrList)
 
         return name_attr
@@ -70,7 +75,9 @@ class CertBuilder():
             if item.get("DNSName"):
                 el = self.conf.extentionMapping["DNSName"](item.get("DNSName"))
             elif item.get("IPAddressV4"):
-                el = self.conf.extentionMapping["IPAddress"](IPv4Address(item.get("IPAddressV4")))
+                el = self.conf.extentionMapping["IPAddress"](
+                    IPv4Address(item.get("IPAddressV4"))
+                )
             else:
                 raise ValueError(f"{item} not supported")
                 sys.exit()
@@ -90,7 +97,9 @@ class CertBuilder():
 
         isCritical = True if extConf["critical"] == "true" else False
 
-        self.builder = self.builder.add_extension(x509.KeyUsage(**kwargs), critical=isCritical)
+        self.builder = self.builder.add_extension(
+            x509.KeyUsage(**kwargs), critical=isCritical
+        )
 
     def _setExtendedKeyUsage(self, extConf: dict) -> None:
         eku = []
@@ -103,7 +112,9 @@ class CertBuilder():
 
         isCritical = True if extConf["critical"] == "true" else False
 
-        self.builder = self.builder.add_extension(x509.ExtendedKeyUsage(eku), critical=isCritical)
+        self.builder = self.builder.add_extension(
+            x509.ExtendedKeyUsage(eku), critical=isCritical
+        )
 
     def _setBasicConstraints(self, extConf: dict) -> None:
         pathLenght = (
@@ -150,7 +161,7 @@ class CertBuilder():
             isCritical = True if extConf["critical"] == "true" else False
 
             self.builder = self.builder.add_extension(
-                x509.SubjectKeyIdentifier.from_public_key(self.key.public_key()),
+                self.ski,
                 critical=isCritical,
             )
 
@@ -163,7 +174,9 @@ class CertBuilder():
             if certConf["subject_name"] != certConf["issuer_name"]:
                 issuer_name = certConf["issuer_name"]
                 issuer_conf = self.conf.getCert(certName=issuer_name)
-                issuerCrtFile = self.conf.getCertPath(certName=issuer_name, ext="signed_certificate")
+                issuerCrtFile = self.conf.getCertPath(
+                    certName=issuer_name, ext="signed_certificate"
+                )
                 issuer_cert = None
                 # load crt file from constructed path if it exists
                 if os.path.exists(issuerCrtFile):
@@ -176,11 +189,15 @@ class CertBuilder():
                 isCritical = True if extConf["critical"] == "true" else False
 
                 self.builder = self.builder.add_extension(
-                    x509.AuthorityKeyIdentifier.from_issuer_public_key(issuer_cert.public_key()),
+                    x509.AuthorityKeyIdentifier.from_issuer_public_key(
+                        issuer_cert.public_key()
+                    ),
                     critical=isCritical,
                 )
             else:
-                raise ValueError("AuthorityKeyIdentifier can't be set to true because subject_name == issuer_name, please correct the configuration")
+                raise ValueError(
+                    "AuthorityKeyIdentifier can't be set to true because subject_name == issuer_name, please correct the configuration"
+                )
                 sys.exit()
 
     def _setExtensions(self) -> None:
@@ -207,11 +224,10 @@ class CertBuilder():
                     sys.exit()
 
     def _setAll(self) -> None:
+        # get the conf
         certConf = self.conf.getCert(certName=self.certName)
+        # set the cert configuration
         self._setNameAttributes()
         self._setNotValid()
         self._setExtensions()
         self.builder = self.builder.serial_number(x509.random_serial_number())
-        self.builder = self.builder.public_key(self.key.public_key())
-        hashAlg = self.conf.hash_mapping[certConf["private_key"]["sign_with_alg"]]
-        self.certificate = self.builder.sign(private_key=self.key, algorithm=hashAlg)
