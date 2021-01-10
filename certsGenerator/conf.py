@@ -202,6 +202,9 @@ class Conf(object, metaclass=MetaRegistry):
     serialization_mapping = {
         "PEM": serialization.Encoding.PEM,
         "PKCS8": serialization.PrivateFormat.PKCS8,
+        "TraditionalOpenSSL": serialization.PrivateFormat.TraditionalOpenSSL,
+        "Raw": serialization.PrivateFormat.Raw,
+        "OpenSSH": serialization.PrivateFormat.OpenSSH,  # type: ignore
     }
 
     hash_mapping = {"sha512": hashes.SHA512(), "sha256": hashes.SHA256()}
