@@ -82,14 +82,18 @@ class CertManager:
             os.makedirs(path)
 
         if os.path.exists(keyFile):
-            print("========== Private key file already exist")
+            print(f"========== Private key of {certName} file already exist")
             private_key_bytes = loadFile(fileName=keyFile)
             password = self.conf.getPassphrase(certName=certName)
-            private_key = serialization.load_pem_private_key(  # type: ignore
-                private_key_bytes, password=password
-            )
+            try:
+                private_key = serialization.load_pem_private_key(  # type: ignore
+                    private_key_bytes, password=password
+                )
+            except ValueError as e:
+                print(f"Error while loading the key {keyFile}. Please make sure the key is properly generated and the file is not empty.")
+                sys.exit()
         else:
-            print("========== Creating private key")
+            print(f"========== Creating private key of {certName}")
             key_type = certConf["private_key"]["algorithm"]["type"]
             params = certConf["private_key"]["algorithm"]["params"]
             if key_type == "EC":
