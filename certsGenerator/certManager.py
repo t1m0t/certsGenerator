@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import padding
 
 from certsGenerator.conf import Conf
 from certsGenerator.helpers import loadFile
@@ -40,8 +41,8 @@ class CertManager:
         key_format = certConf["private_key"]["format"]
         try:
             with open(path, mode="wb") as f:
-                encoding = self.conf.serialization_mapping[encoding]
-                fmt = self.conf.serialization_mapping[key_format]
+                encoding = self.conf.serializationMapping[encoding]
+                fmt = self.conf.serializationMapping[key_format]
                 f.write(
                     private_key.private_bytes(  # type: ignore
                         encoding=encoding,
@@ -90,7 +91,9 @@ class CertManager:
                     private_key_bytes, password=password
                 )
             except ValueError as e:
-                print(f"Error while loading the key {keyFile}. Please make sure the key is properly generated and the file is not empty.")
+                print(
+                    f"Error while loading the key {keyFile}. Please make sure the key is properly generated and the file is not empty."
+                )
                 sys.exit()
         else:
             print(f"========== Creating private key of {certName}")
@@ -126,7 +129,7 @@ class CertManager:
             cert = CertBuilder(certName=subject_name, conf=self.conf, ski=ski).builder
             cert = cert.public_key(private_key.public_key())
             # now sign the cert with the issuer private key
-            hashAlg = self.conf.hash_mapping[certConf["private_key"]["sign_with_alg"]]
+            hashAlg = self.conf.hashMapping[certConf["private_key"]["sign_with_alg"]]
             cert = cert.sign(private_key=issuer_private_key, algorithm=hashAlg)  # type: ignore
             # now store the cert
             self.storePublicKey(certName=certName, cert=cert)  # type: ignore
@@ -155,9 +158,23 @@ class CertManager:
             pem_issuer_public_key
         ).public_key()
         cert_to_check = x509.load_pem_x509_certificate(pem_subject_public_key)  # type: ignore
-        issuer_public_key.verify(  # type: ignore
-            cert_to_check.signature,
-            cert_to_check.tbs_certificate_bytes,
-            ec.ECDSA(cert_to_check.signature_hash_algorithm),  # type: ignore
-        )
+        if isinstance(issuer_public_key, rsa.RSAPublicKey):
+            issuer_public_key.verify(
+                cert_to_check.signature,
+                cert_to_check.tbs_certificate_bytes,
+                self.conf.RSApaddingMapping["PKCS1v15"](),
+                cert_to_check.signature_hash_algorithm,
+            )
+        elif isinstance(issuer_public_key, ec.EllipticCurvePublicKey):
+            issuer_public_key.verify(  # type: ignore
+                cert_to_check.signature,
+                cert_to_check.tbs_certificate_bytes,
+                ec.ECDSA(cert_to_check.signature_hash_algorithm),  # type: ignore
+            )
+        else:
+            raise ValueError(
+                f"Failed to verify due to unsupported algorythm {type(cert_to_check.public_key())}"
+            )
+            sys.exit()
+
         print("========== signature OK")

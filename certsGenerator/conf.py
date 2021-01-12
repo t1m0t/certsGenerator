@@ -6,9 +6,10 @@ from typing import Callable, Union
 
 from cryptography import x509
 from cryptography.x509.oid import NameOID, ExtensionOID, ExtendedKeyUsageOID
-from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric import padding
 
 from certsGenerator.helpers import loadFile
 
@@ -199,7 +200,7 @@ class Conf(object, metaclass=MetaRegistry):
     # one supported for the moment
     curveMapping = {"SECP521R1": ec.SECP521R1()}
 
-    serialization_mapping = {
+    serializationMapping = {
         "PEM": serialization.Encoding.PEM,
         "PKCS8": serialization.PrivateFormat.PKCS8,
         "TraditionalOpenSSL": serialization.PrivateFormat.TraditionalOpenSSL,
@@ -207,7 +208,13 @@ class Conf(object, metaclass=MetaRegistry):
         "OpenSSH": serialization.PrivateFormat.OpenSSH,  # type: ignore
     }
 
-    hash_mapping = {"sha512": hashes.SHA512(), "sha256": hashes.SHA256()}
+    RSApaddingMapping = {
+        "PSS": padding.PSS,
+        "OAEP": padding.OAEP,
+        "PKCS1v15": padding.PKCS1v15,
+    }
+
+    hashMapping = {"sha512": hashes.SHA512(), "sha256": hashes.SHA256()}
 
     keyUsage = set(
         [
