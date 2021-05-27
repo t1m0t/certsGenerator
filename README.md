@@ -12,6 +12,7 @@ This project:
 Algorithms supported:
  * ECDSA
  * RSA
+ * Ed25119
 
  # Testing
 Run test with `pipenv run test`
