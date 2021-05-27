@@ -1,16 +1,13 @@
 import os
 import stat
 import sys
-import orjson
-from typing import Union
-from orjson import JSONEncodeError
+from typing import Tuple, Union, Dict, Optional
 
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from certsGenerator.conf import Conf
 from certsGenerator.helpers import loadFile
@@ -24,29 +21,27 @@ class CertManager:
     def storePrivateKey(
         self,
         certName: str,
-        private_key: Union[ec.EllipticCurvePrivateKey, rsa.RSAPrivateKey],
+        private_key: Union[
+            ec.EllipticCurvePrivateKey, rsa.RSAPrivateKey, ed25519.Ed25519PrivateKey
+        ],
     ) -> None:
         certConf = self.conf.getCert(certName=certName)
+
         # get passphrase
         passphrase = self.conf.getPassphrase(certName=certName)
-        encryption_algorithm: serialization.KeySerializationEncryption
-        if passphrase:
-            encryption_algorithm = serialization.BestAvailableEncryption(passphrase)
-        else:
-            encryption_algorithm = serialization.NoEncryption()
+
+        # set encryption algorithm
+        encryption_algorithm = self._getEncryptionAlgorithm(passphrase=passphrase)
 
         # get other params from conf
+        encoding, key_format = self._getParamsForPrivateBytes(certConf=certConf)
         path = self.conf.getCertPath(certName=certName, ext="private_key")
-        encoding = certConf["private_key"]["encoding"]
-        key_format = certConf["private_key"]["format"]
         try:
             with open(path, mode="wb") as f:
-                encoding = self.conf.serializationMapping[encoding]
-                fmt = self.conf.serializationMapping[key_format]
                 f.write(
                     private_key.private_bytes(  # type: ignore
                         encoding=encoding,
-                        format=fmt,
+                        format=key_format,
                         encryption_algorithm=encryption_algorithm,
                     )
                 )
@@ -73,7 +68,6 @@ class CertManager:
             raise ValueError(f"key not found in {certConf}")
             sys.exit()
         path = certConf["storage"]["path"]
-        fileName = certConf["storage"]["fileName"]
         certName = certConf["subject_name"]
 
         keyFile = self.conf.getCertPath(certName=certName, ext="private_key")
@@ -97,8 +91,12 @@ class CertManager:
                 sys.exit()
         else:
             print(f"========== Creating private key of {certName}")
-            key_type = certConf["private_key"]["algorithm"]["type"]
-            params = certConf["private_key"]["algorithm"]["params"]
+            key_type: str = certConf["private_key"]["algorithm"]["type"].upper()
+            params = []
+            if "params" in certConf["private_key"]["algorithm"].keys():
+                params = certConf["private_key"]["algorithm"]["params"]
+            else:
+                params = None
             if key_type == "EC":
                 private_key = ec.generate_private_key(  # type: ignore
                     curve=self.conf.curveMapping[params["curve"]]
@@ -107,6 +105,9 @@ class CertManager:
                 private_key = rsa.generate_private_key(  # type: ignore
                     public_exponent=65537, key_size=int(params["key_size"])
                 )
+            elif key_type == "ED25519":
+                private_key = ed25519.Ed25519PrivateKey.generate()
+
             self.storePrivateKey(certName=certName, private_key=private_key)  # type: ignore
         return private_key  # type: ignore
 
@@ -171,6 +172,12 @@ class CertManager:
                 cert_to_check.tbs_certificate_bytes,
                 ec.ECDSA(cert_to_check.signature_hash_algorithm),  # type: ignore
             )
+        elif isinstance(issuer_public_key, ed25519.Ed25519PublicKey):
+            issuer_public_key.verify(  # type: ignore
+                cert_to_check.signature,
+                cert_to_check.tbs_certificate_bytes,
+                ec.ECDSA(cert_to_check.signature_hash_algorithm),  # type: ignore
+            )
         else:
             raise ValueError(
                 f"Failed to verify due to unsupported algorythm {type(cert_to_check.public_key())}"
@@ -178,3 +185,21 @@ class CertManager:
             sys.exit()
 
         print("========== signature OK")
+
+    def _getParamsForPrivateBytes(
+        self, certConf: Dict
+    ) -> Tuple[serialization.Encoding, serialization.PrivateFormat]:
+        encoding = self.conf.serializationMapping[certConf["private_key"]["encoding"]]
+        key_format = self.conf.serializationMapping[certConf["private_key"]["format"]]
+
+        return encoding, key_format
+
+    def _getEncryptionAlgorithm(
+        self, passphrase: Optional[str] = None
+    ) -> Union[serialization.BestAvailableEncryption, serialization.NoEncryption]:
+        if passphrase:
+            encryption_algorithm = serialization.BestAvailableEncryption(passphrase)
+        else:
+            encryption_algorithm = serialization.NoEncryption()
+
+        return encryption_algorithm

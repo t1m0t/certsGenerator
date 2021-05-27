@@ -11,3 +11,4 @@ coverage.xml
 .mypy_cache
 build
 htmlcov
+data/

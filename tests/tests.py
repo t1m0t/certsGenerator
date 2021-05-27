@@ -37,3 +37,9 @@ class MainTests(unittest.TestCase):
         CertsGenerator(pathToConf=CONF_FILE).run()
 
         delDir("certs")
+
+    def test_5_1_ed25119_cert(self) -> None:
+        CONF_FILE = "tests/confs/test5.json"
+        CertsGenerator(pathToConf=CONF_FILE).run()
+
+        delDir("certs")

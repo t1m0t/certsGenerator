@@ -117,9 +117,13 @@ class CertBuilder:
         )
 
     def _setBasicConstraints(self, extConf: dict) -> None:
-        pathLenght = (
-            None if extConf["path_length"] == "none" else int(extConf["path_length"])
-        )
+        print(extConf)
+        pathLenght: int = None
+        if "path_length" in extConf.keys():    
+            if extConf["path_length"] == "none":
+                pathLenght = None
+            else:
+                pathLenght = int(extConf["path_length"])
         isCA = True if extConf["ca"] == "true" else False
         isCritical = True if extConf["critical"] == "true" else False
 
