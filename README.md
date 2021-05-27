@@ -14,4 +14,4 @@ Algorithms supported:
  * RSA
 
  # Testing
-Run test with `pytest tests.py`.
+Run test with `pipenv run test`

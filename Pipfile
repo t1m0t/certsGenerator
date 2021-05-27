@@ -1,11 +1,11 @@
 [[source]]
-url = "https://pypi.org/simple"
+url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
 [packages]
 orjson = "*"
-cryptography = "==3.3.1"
+cryptography = "==3.4.7"
 click = "*"
 
 [dev-packages]
@@ -24,7 +24,7 @@ python_version = "3"
 lint = "mypy ./ --ignore-missing-imports"
 fmt = "black -t py38 -v --line-length 88 ./certsGenerator ./tests --exclude __pycache__"
 fmt-check = "black -t py38 -v --line-length 88 --check ./certsGenerator ./tests --exclude __pycache__"
-test = "pytest -v --cov=./certsGenerator --cov-report=term-missing -v --cov-report=xml"
+test = "pytest -v --cov=./certsGenerator --cov-report=term-missing -v --cov-report=html ./tests/tests.py"
 
 [pipenv]
 allow_prereleases = true

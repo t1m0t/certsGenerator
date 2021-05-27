@@ -29,7 +29,7 @@
                     "format": "PKCS8",
                     "sign_with_alg": "sha512",
                     "passphrase": {
-                        "path": "passphrase",
+                        "path": "tests/passphrase",
                         "fileName": "fortest"
                     }
                 },
