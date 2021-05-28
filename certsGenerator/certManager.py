@@ -35,6 +35,8 @@ class CertManager:
 
         # get other params from conf
         encoding, key_format = self._getParamsForPrivateBytes(certConf=certConf)
+
+        # get path and save the key file
         path = self.conf.getCertPath(certName=certName, ext="private_key")
         try:
             with open(path, mode="wb") as f:
@@ -198,7 +200,7 @@ class CertManager:
         self, passphrase: Optional[str] = None
     ) -> Union[serialization.BestAvailableEncryption, serialization.NoEncryption]:
         if passphrase:
-            encryption_algorithm = serialization.BestAvailableEncryption(passphrase)
+            encryption_algorithm = serialization.BestAvailableEncryption(passphrase.encode())
         else:
             encryption_algorithm = serialization.NoEncryption()
 

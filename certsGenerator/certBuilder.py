@@ -118,8 +118,8 @@ class CertBuilder:
 
     def _setBasicConstraints(self, extConf: dict) -> None:
         print(extConf)
-        pathLenght: int = None
-        if "path_length" in extConf.keys():    
+        pathLenght = None
+        if "path_length" in extConf.keys():
             if extConf["path_length"] == "none":
                 pathLenght = None
             else:
