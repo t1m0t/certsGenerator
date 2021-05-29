@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 
 from certsGenerator.helpers import loadFile
 
+
 checkRegistry = []
 
 
@@ -178,6 +179,24 @@ class Conf(object, metaclass=MetaRegistry):
                     raise ValueError(f"{ku} not found in allowed ExtendedKeyUsage")
                 sys.exit()
 
+    @register_check  # type: ignore
+    def _checkEncoding(self) -> None:
+        certs = self.general["certs"]
+        for cert in certs:
+            for ku in cert["private_key"]["encoding"]:
+                if ku.upper() not in self.encodingMapping.keys():
+                    raise ValueError(f"{ku} not found in allowed encoding formats")
+                sys.exit()
+
+    @register_check  # type: ignore
+    def _checkSerialization(self) -> None:
+        certs = self.general["certs"]
+        for cert in certs:
+            for ku in cert["private_key"]["format"]:
+                if ku.upper() not in self.serializationMapping.keys():
+                    raise ValueError(f"{ku} not found in allowed serialization formats")
+                sys.exit()
+
     nameAttributesMapping = {
         "COUNTRY_NAME": NameOID.COUNTRY_NAME,
         "STATE_OR_PROVINCE_NAME": NameOID.STATE_OR_PROVINCE_NAME,
@@ -186,7 +205,7 @@ class Conf(object, metaclass=MetaRegistry):
         "COMMON_NAME": NameOID.COMMON_NAME,
     }
 
-    extentionMapping = {
+    extensionMapping = {
         "SubjectAlternativeName": x509.SubjectAlternativeName,
         "KeyUsage": x509.KeyUsage,
         "BasicConstraints": x509.BasicConstraints,
@@ -197,11 +216,15 @@ class Conf(object, metaclass=MetaRegistry):
         "IPAddress": x509.IPAddress,
     }
 
-    # one supported for the moment
+    # one supported at the moment
     curveMapping = {"SECP521R1": ec.SECP521R1()}
 
-    serializationMapping = {
+    encodingMapping = {
         "PEM": serialization.Encoding.PEM,
+        "DER": serialization.Encoding.DER,
+    }
+
+    serializationMapping = {
         "PKCS8": serialization.PrivateFormat.PKCS8,
         "TraditionalOpenSSL": serialization.PrivateFormat.TraditionalOpenSSL,
         "Raw": serialization.PrivateFormat.Raw,

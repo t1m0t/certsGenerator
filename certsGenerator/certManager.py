@@ -191,7 +191,7 @@ class CertManager:
     def _getParamsForPrivateBytes(
         self, certConf: Dict
     ) -> Tuple[serialization.Encoding, serialization.PrivateFormat]:
-        encoding = self.conf.serializationMapping[certConf["private_key"]["encoding"]]
+        encoding = self.conf.encodingMapping[certConf["private_key"]["encoding"]]
         key_format = self.conf.serializationMapping[certConf["private_key"]["format"]]
 
         return encoding, key_format
@@ -200,7 +200,7 @@ class CertManager:
         self, passphrase: Optional[str] = None
     ) -> Union[serialization.BestAvailableEncryption, serialization.NoEncryption]:
         if passphrase:
-            encryption_algorithm = serialization.BestAvailableEncryption(passphrase.encode())
+            encryption_algorithm = serialization.BestAvailableEncryption(passphrase)
         else:
             encryption_algorithm = serialization.NoEncryption()
 

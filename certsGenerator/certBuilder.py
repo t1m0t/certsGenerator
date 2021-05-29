@@ -73,9 +73,9 @@ class CertBuilder:
         for item in items:
             el = None
             if item.get("DNSName"):
-                el = self.conf.extentionMapping["DNSName"](item.get("DNSName"))
+                el = self.conf.extensionMapping["DNSName"](item.get("DNSName"))
             elif item.get("IPAddressV4"):
-                el = self.conf.extentionMapping["IPAddress"](
+                el = self.conf.extensionMapping["IPAddress"](
                     IPv4Address(item.get("IPAddressV4"))
                 )
             else:
@@ -140,7 +140,7 @@ class CertBuilder:
             len(extConf["permitted_subtrees"]) >= 1
         ):
             for p in extConf["permitted_subtrees"]:
-                permittedList.append(self.conf.extentionMapping[p["type"]](p["value"]))
+                permittedList.append(self.conf.extensionMapping[p["type"]](p["value"]))
         else:
             permittedList = None  # type: ignore
 
@@ -149,7 +149,7 @@ class CertBuilder:
             len(extConf["excluded_subtrees"]) >= 1
         ):
             for p in extConf["excluded_subtrees"]:
-                excludedList.append(self.conf.extentionMapping[p["type"]](p["value"]))
+                excludedList.append(self.conf.extensionMapping[p["type"]](p["value"]))
         else:
             excludedList = None  # type: ignore
 
