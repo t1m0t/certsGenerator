@@ -116,7 +116,7 @@ class Conf(object, metaclass=MetaRegistry):
         for fun in checkRegistry:
             fun()
 
-    @register_check  # type: ignore
+    @register_check  # noqa: F821
     def _checkRedundantNames(self) -> None:
         # check if no redundant certs names
         certs = self.general["certs"]
@@ -131,7 +131,7 @@ class Conf(object, metaclass=MetaRegistry):
                 raise ValueError(f"Configuration file error: {k} appears {v} times")
                 sys.exit()
 
-    @register_check  # type: ignore
+    @register_check  # noqa: F821
     def _checkNotValidDate(self) -> None:
         # check not_valid_before not_valid_after
         certs = self.general["certs"]
@@ -149,7 +149,7 @@ class Conf(object, metaclass=MetaRegistry):
                 raise ValueError(f'invalid value from {nvb}, should be of int or "now"')
                 sys.exit()
 
-    @register_check  # type: ignore
+    @register_check  # noqa: F821
     def _checkCertName(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
@@ -161,7 +161,7 @@ class Conf(object, metaclass=MetaRegistry):
                 )
                 sys.exit()
 
-    @register_check  # type: ignore
+    @register_check  # noqa: F821
     def _checkKeyUsage(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
@@ -170,7 +170,7 @@ class Conf(object, metaclass=MetaRegistry):
                     raise ValueError(f"{ku} not found in allowed keyUsage")
                 sys.exit()
 
-    @register_check  # type: ignore
+    @register_check  # noqa: F821
     def _checkExtendedKeyUsage(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
@@ -179,7 +179,7 @@ class Conf(object, metaclass=MetaRegistry):
                     raise ValueError(f"{ku} not found in allowed ExtendedKeyUsage")
                 sys.exit()
 
-    @register_check  # type: ignore
+    @register_check  # noqa: F821
     def _checkEncoding(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
@@ -188,7 +188,7 @@ class Conf(object, metaclass=MetaRegistry):
                     raise ValueError(f"{ku} not found in allowed encoding formats")
                 sys.exit()
 
-    @register_check  # type: ignore
+    @register_check  # noqa: F821
     def _checkSerialization(self) -> None:
         certs = self.general["certs"]
         for cert in certs:

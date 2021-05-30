@@ -1,7 +1,8 @@
 import os
 import sys
 import datetime
-from ipaddress import IPv4Address
+import logging
+from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network
 from typing import Union
 
 from cryptography import x509
@@ -14,7 +15,12 @@ from certsGenerator.helpers import loadFile
 
 
 class CertBuilder:
-    def __init__(self, certName: str, conf: Conf, ski: x509.SubjectKeyIdentifier):
+    def __init__(
+        self,
+        certName: str,
+        conf: Conf,
+        ski: x509.SubjectKeyIdentifier,
+    ):
         self.certName = certName
         self.conf: Conf = conf
         self.ski = ski
@@ -40,15 +46,23 @@ class CertBuilder:
     def _setNotValid(self) -> None:
         certConf = self.conf.getCert(certName=self.certName)
         nvb = None
-        if certConf["not_valid_before"] == "now":
-            nvb = datetime.datetime.utcnow()
-        else:
-            nvb = datetime.datetime.utcnow() + datetime.timedelta(
-                days=certConf["not_valid_before"]
+        try:
+            if certConf["not_valid_before"] == "now":
+                nvb = datetime.datetime.utcnow()
+            else:
+                nvb = datetime.datetime.utcnow() + datetime.timedelta(
+                    days=certConf["not_valid_before"]
+                )
+        except ValueError() as e:
+            logging.error(f"can't set not_valid_before: {e}")
+        nva: None
+        try:
+            nva = datetime.datetime.utcnow() + datetime.timedelta(
+                days=certConf["not_valid_after"]
             )
-        nva = datetime.datetime.utcnow() + datetime.timedelta(
-            days=certConf["not_valid_after"]
-        )
+        except ValueError() as e:
+            logging.error(f"can't set not_valid_after: {e}")
+
         self.builder = self.builder.not_valid_before(nvb)
         self.builder = self.builder.not_valid_after(nva)
 
@@ -78,9 +92,20 @@ class CertBuilder:
                 el = self.conf.extensionMapping["IPAddress"](
                     IPv4Address(item.get("IPAddressV4"))
                 )
+            elif item.get("IPAddressV6"):
+                el = self.conf.extensionMapping["IPAddress"](
+                    IPv6Address(item.get("IPAddressV6"))
+                )
+            elif item.get("IPNetworkV4"):
+                el = self.conf.extensionMapping["IPAddress"](
+                    IPv4Address(item.get("IPNetworkV4"))
+                )
+            elif item.get("IPNetworkV6"):
+                el = self.conf.extensionMapping["IPAddress"](
+                    IPv6Address(item.get("IPNetworkV6"))
+                )
             else:
-                raise ValueError(f"{item} not supported")
-                sys.exit()
+                raise logging.error(f"can't find SubjectAlternativeName {item}")
             elList.append(el)
 
         self.builder = self.builder.add_extension(
@@ -95,7 +120,7 @@ class CertBuilder:
             else:
                 kwargs[el] = False
 
-        isCritical = True if extConf["critical"] == "true" else False
+        isCritical = True if extConf.get("critical") == "true" else False
 
         self.builder = self.builder.add_extension(
             x509.KeyUsage(**kwargs), critical=isCritical
@@ -104,28 +129,23 @@ class CertBuilder:
     def _setExtendedKeyUsage(self, extConf: dict) -> None:
         eku = []
         for el in extConf["items"]:
-            if el.upper() not in self.conf.extendedKeyUsageMapping.keys():
-                raise ValueError(f"{el} not found in allowed extendedKeyUsage")
-                sys.exit()
-            else:
-                eku.append(self.conf.extendedKeyUsageMapping[el.upper()])
+            eku.append(self.conf.extendedKeyUsageMapping[el.upper()])
 
-        isCritical = True if extConf["critical"] == "true" else False
+        isCritical = True if extConf.get("critical") == "true" else False
 
         self.builder = self.builder.add_extension(
             x509.ExtendedKeyUsage(eku), critical=isCritical
         )
 
     def _setBasicConstraints(self, extConf: dict) -> None:
-        print(extConf)
         pathLenght = None
         if "path_length" in extConf.keys():
             if extConf["path_length"] == "none":
                 pathLenght = None
             else:
                 pathLenght = int(extConf["path_length"])
-        isCA = True if extConf["ca"] == "true" else False
-        isCritical = True if extConf["critical"] == "true" else False
+        isCA = True if extConf.get("ca") == "true" else False
+        isCritical = True if extConf.get("critical") == "true" else False
 
         self.builder = self.builder.add_extension(
             x509.BasicConstraints(ca=isCA, path_length=pathLenght),
@@ -133,7 +153,7 @@ class CertBuilder:
         )
 
     def _setNameConstraints(self, extConf: dict) -> None:
-        isCritical = True if extConf["critical"] == "true" else False
+        isCritical = True if extConf.get("critical") == "true" else False
 
         permittedList = []
         if (extConf.get("permitted_subtrees") is not None) and (
@@ -162,7 +182,7 @@ class CertBuilder:
 
     def _setSubjectKeyIdentifier(self, extConf: dict) -> None:
         if extConf["set"] == "true":
-            isCritical = True if extConf["critical"] == "true" else False
+            isCritical = True if extConf.get("critical") == "true" else False
 
             self.builder = self.builder.add_extension(
                 self.ski,
@@ -185,12 +205,15 @@ class CertBuilder:
                 # load crt file from constructed path if it exists
                 if os.path.exists(issuerCrtFile):
                     pem_data = loadFile(fileName=issuerCrtFile)
-                    issuer_cert = x509.load_pem_x509_certificate(pem_data)  # type: ignore
+                    issuer_cert = x509.load_pem_x509_certificate(
+                        pem_data
+                    )  # type: ignore
                 else:
-                    raise ValueError(f"can't find issuer crt file {issuerCrtFile}")
-                    sys.exit()
+                    raise logging.error(
+                        f"can't find issuer crt file {issuerCrtFile}"
+                    )
 
-                isCritical = True if extConf["critical"] == "true" else False
+                isCritical = True if extConf.get("critical") == "true" else False
 
                 self.builder = self.builder.add_extension(
                     x509.AuthorityKeyIdentifier.from_issuer_public_key(
@@ -199,15 +222,14 @@ class CertBuilder:
                     critical=isCritical,
                 )
             else:
-                raise ValueError(
-                    "AuthorityKeyIdentifier can't be set to true because subject_name == issuer_name, please correct the configuration"
+                raise logging.error(
+                    "AuthorityKeyIdentifier can't be set because subject_name == issuer_name (self-signed), please correct the configuration"
                 )
-                sys.exit()
 
     def _setExtensions(self) -> None:
         certConf = self.conf.getCert(certName=self.certName)
-        extensionsConf = certConf["extensions"]
-        if extensionsConf:
+        if certConf.get("extensions"):
+            extensionsConf = certConf.get("extensions")
             for k in extensionsConf.keys():
                 if k == "SubjectAlternativeName":
                     self._setSubjectAlternativeName(extConf=extensionsConf[k])
@@ -224,8 +246,9 @@ class CertBuilder:
                 elif k == "AuthorityKeyIdentifier":
                     self._setAuthorityKeyIdentifier(extConf=extensionsConf[k])
                 else:
-                    raise ValueError(f"incorrect or not implemented extension {k}")
-                    sys.exit()
+                    raise logging.error(
+                        f"incorrect or not implemented extension {k}"
+                    )
 
     def _setAll(self) -> None:
         # get the conf

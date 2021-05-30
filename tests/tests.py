@@ -16,30 +16,30 @@ from tests.helpers import delDir
 class MainTests(unittest.TestCase):
     def test_1_ecdsa_root_ca_generation(self) -> None:
         CONF_FILE = "tests/confs/test1.json"
-        CertsGenerator(pathToConf=CONF_FILE).run()
+        CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
 
         delDir("certs")
 
     def test_2_1_ecdsa_root_and_intermediate_certificate_generation(self) -> None:
         CONF_FILE = "tests/confs/test2.json"
-        CertsGenerator(pathToConf=CONF_FILE).run()
+        CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
 
         delDir("certs")
 
     def test_3_1_rsa_certs(self) -> None:
         CONF_FILE = "tests/confs/test3.json"
-        CertsGenerator(pathToConf=CONF_FILE).run()
+        CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
 
         delDir("certs")
 
     def test_4_1_rsa_certs_multiple(self) -> None:
         CONF_FILE = "tests/confs/test4.json"
-        CertsGenerator(pathToConf=CONF_FILE).run()
+        CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
 
         delDir("certs")
 
     def test_5_1_ed25119_cert(self) -> None:
         CONF_FILE = "tests/confs/test5.json"
-        CertsGenerator(pathToConf=CONF_FILE).run()
+        CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
 
         delDir("certs")
