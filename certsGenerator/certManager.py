@@ -84,12 +84,17 @@ class CertManager:
             private_key_bytes = loadFile(fileName=keyFile)
             password = self.conf.getPassphrase(certName=certName)
             try:
-                private_key = serialization.load_pem_private_key(  # type: ignore
-                    private_key_bytes, password=password
-                )
+                if certConf.get("private_key").get("encoding") == "PEM":
+                    private_key = serialization.load_pem_private_key(  # type: ignore
+                        private_key_bytes, password=password
+                    )
+                elif certConf.get("private_key").get("encoding") == "DER":
+                    private_key = serialization.load_der_private_key(  # type: ignore
+                        private_key_bytes, password=password
+                    )
             except ValueError as e:
                 logging.error(
-                    f"Error while loading the key {keyFile}. Please make sure the key is properly generated and the file is not empty."
+                    f"Error while loading the private key {keyFile}. Please make sure the key is properly generated and the file is not empty."
                 )
 
         else:
@@ -136,9 +141,7 @@ class CertManager:
             # ok then we build the cert
             subject_name = certConf["subject_name"]
             ski = x509.SubjectKeyIdentifier.from_public_key(private_key.public_key())
-            cert = CertBuilder(
-                certName=subject_name, conf=self.conf, ski=ski
-            ).builder
+            cert = CertBuilder(certName=subject_name, conf=self.conf, ski=ski).builder
             cert = cert.public_key(private_key.public_key())
             # now sign the cert with the issuer private key
             hashAlg = self.conf.hashMapping[certConf["private_key"]["sign_with_alg"]]

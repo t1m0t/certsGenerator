@@ -209,9 +209,7 @@ class CertBuilder:
                         pem_data
                     )  # type: ignore
                 else:
-                    raise logging.error(
-                        f"can't find issuer crt file {issuerCrtFile}"
-                    )
+                    raise logging.error(f"can't find issuer crt file {issuerCrtFile}")
 
                 isCritical = True if extConf.get("critical") == "true" else False
 
@@ -246,9 +244,7 @@ class CertBuilder:
                 elif k == "AuthorityKeyIdentifier":
                     self._setAuthorityKeyIdentifier(extConf=extensionsConf[k])
                 else:
-                    raise logging.error(
-                        f"incorrect or not implemented extension {k}"
-                    )
+                    raise logging.error(f"incorrect or not implemented extension {k}")
 
     def _setAll(self) -> None:
         # get the conf

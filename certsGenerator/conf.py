@@ -1,8 +1,9 @@
 import datetime
 import sys
+import logging
 
 from orjson import loads, JSONEncodeError
-from typing import Callable, Union
+from typing import Callable, Union, Dict
 
 from cryptography import x509
 from cryptography.x509.oid import NameOID, ExtensionOID, ExtendedKeyUsageOID
@@ -51,7 +52,7 @@ class Conf(object, metaclass=MetaRegistry):
                 conf = cert
                 break
         if not (len(conf) > 0):
-            raise ValueError(f'cert name "{certName}" not found')
+            raise logging.error(f"cert {certName} not found")
         return conf["conf"]
 
     def get(self, certName: str, field: str, isExt: bool = True) -> dict:
@@ -61,8 +62,7 @@ class Conf(object, metaclass=MetaRegistry):
         elif certConf[field]:
             return certConf[field]
         else:
-            raise ValueError(f"{field} not found in conf")
-            sys.exit()
+            raise logging.error(f"{field} not found in conf")
 
     def getCertPath(self, certName: str, ext: str) -> str:
         certConf = self.getCert(certName)
@@ -87,8 +87,7 @@ class Conf(object, metaclass=MetaRegistry):
             passphrase = loadFile(passFile)
 
             if not type(passphrase) == bytes:
-                raise ValueError("passphrase should be of bytes type")
-                sys.exit()
+                raise logging.error("passphrase should be of bytes type")
             return passphrase
         else:
             passphrase = None  # type: ignore
@@ -103,10 +102,7 @@ class Conf(object, metaclass=MetaRegistry):
                 except JSONEncodeError as e:
                     sys.exit(f"enable to load string from {fileName}: {e}")
         except OSError as e:
-            print(
-                'please make sure to execute the script like this: "python src/main.py"'
-            )
-            sys.exit(f"failed to open {fileName}: {e}")
+            logging.error(f"failed to open {fileName}: {e}")
         return generalConf
 
     def _getFileExt(self) -> dict:
@@ -128,8 +124,7 @@ class Conf(object, metaclass=MetaRegistry):
                 names[cert["name"]] = 1
         for k, v in names.items():
             if v > 1:
-                raise ValueError(f"Configuration file error: {k} appears {v} times")
-                sys.exit()
+                raise logging.error(f"Configuration file error: {k} appears {v} times")
 
     @register_check  # noqa: F821
     def _checkNotValidDate(self) -> None:
@@ -146,7 +141,9 @@ class Conf(object, metaclass=MetaRegistry):
                     days=certConf["not_valid_before"]
                 )
             else:
-                raise ValueError(f'invalid value from {nvb}, should be of int or "now"')
+                raise logging.error(
+                    f'invalid value from {nvb}, should be of int or "now"'
+                )
                 sys.exit()
 
     @register_check  # noqa: F821
@@ -156,7 +153,7 @@ class Conf(object, metaclass=MetaRegistry):
             subjectName = cert["conf"]["subject_name"]
             certName = cert["name"]
             if certName != subjectName:
-                raise ValueError(
+                raise logging.error(
                     f"certname {certName} has to be the same than the subject name, found {subjectName}"
                 )
                 sys.exit()
@@ -167,7 +164,7 @@ class Conf(object, metaclass=MetaRegistry):
         for cert in certs:
             for ku in cert["extensions"]["KeyUsage"]["items"]:
                 if ku.upper not in self.keyUsage:
-                    raise ValueError(f"{ku} not found in allowed keyUsage")
+                    raise logging.error(f"{ku} not found in allowed keyUsage")
                 sys.exit()
 
     @register_check  # noqa: F821
@@ -176,7 +173,7 @@ class Conf(object, metaclass=MetaRegistry):
         for cert in certs:
             for ku in cert["extensions"]["ExtendedKeyUsage"]["items"]:
                 if ku.upper() not in self.extendedKeyUsageMapping.keys():
-                    raise ValueError(f"{ku} not found in allowed ExtendedKeyUsage")
+                    raise logging.error(f"{ku} not found in allowed ExtendedKeyUsage")
                 sys.exit()
 
     @register_check  # noqa: F821
@@ -185,7 +182,7 @@ class Conf(object, metaclass=MetaRegistry):
         for cert in certs:
             for ku in cert["private_key"]["encoding"]:
                 if ku.upper() not in self.encodingMapping.keys():
-                    raise ValueError(f"{ku} not found in allowed encoding formats")
+                    raise logging.error(f"{ku} not found in allowed encoding formats")
                 sys.exit()
 
     @register_check  # noqa: F821
@@ -194,7 +191,9 @@ class Conf(object, metaclass=MetaRegistry):
         for cert in certs:
             for ku in cert["private_key"]["format"]:
                 if ku.upper() not in self.serializationMapping.keys():
-                    raise ValueError(f"{ku} not found in allowed serialization formats")
+                    raise logging.error(
+                        f"{ku} not found in allowed serialization formats"
+                    )
                 sys.exit()
 
     nameAttributesMapping = {

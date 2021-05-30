@@ -7,10 +7,11 @@ from certsGenerator.certManager import CertManager
 class CertsGenerator:
     def __init__(self, pathToConf: str, debug: bool):
         self.CONF_FILE = pathToConf
-        if debug:
-            logging.basicConfig(level=logging.INFO, exc_info=False)
+        logging_format = "%(levelname)s - %(message)s"
+        if not debug:
+            logging.basicConfig(level=logging.INFO, format=logging_format)
         else:
-            logging.basicConfig(level=logging.DEBUG, exc_info=True)
+            logging.basicConfig(level=logging.DEBUG, format=logging_format)
 
     def run(self) -> None:
         cerManager = CertManager(confFile=self.CONF_FILE)
@@ -29,7 +30,7 @@ class CertsGenerator:
 )
 def cli(conf: str, debug: str) -> None:
     if debug == "false":
-        CertsGenerator(pathToConf=conf).run()
+        CertsGenerator(pathToConf=conf, debug=False).run()
     else:
         CertsGenerator(pathToConf=conf, debug=True).run()
 
