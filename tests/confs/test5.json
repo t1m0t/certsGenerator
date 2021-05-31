@@ -26,12 +26,15 @@
                         }
                     },
                     "encoding": "PEM",
-                    "format": "PKCS8",
+                    "serialization": "PKCS8",
                     "sign_with_alg": "sha512",
                     "passphrase": {
                         "path": "tests/passphrase",
                         "fileName": "fortest"
                     }
+                },
+                "public_key": {
+                    "encoding": "PEM"
                 },
                 "subject_name": "root-ca",
                 "issuer_name": "root-ca",
@@ -111,8 +114,11 @@
                         }
                     },
                     "encoding": "PEM",
-                    "format": "PKCS8",
+                    "serialization": "PKCS8",
                     "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "PEM"
                 },
                 "subject_name": "intermadiate-ca",
                 "issuer_name": "root-ca",
@@ -197,8 +203,11 @@
                         "type": "ED25519"
                     },
                     "encoding": "PEM",
-                    "format": "PKCS8",
+                    "serialization": "PKCS8",
                     "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "PEM"
                 },
                 "subject_name": "test_leaf",
                 "issuer_name": "intermadiate-ca",

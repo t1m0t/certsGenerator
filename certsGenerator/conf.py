@@ -1,9 +1,10 @@
 import datetime
 import sys
 import logging
+import functools
 
 from orjson import loads, JSONEncodeError
-from typing import Callable, Union, Dict
+from typing import Callable, Union, Dict, List
 
 from cryptography import x509
 from cryptography.x509.oid import NameOID, ExtensionOID, ExtendedKeyUsageOID
@@ -18,31 +19,21 @@ from certsGenerator.helpers import loadFile
 checkRegistry = []
 
 
-class MetaRegistry(type):
-    @classmethod
-    def __prepare__(mcl, name, bases):  # type: ignore
-        def register_check(r) -> Callable:  # type: ignore
-            def deco(f: Callable) -> Callable:
-                checkRegistry.append(f)
-                return f
-
-            return deco
-
-        d = dict()
-        d["register_check"] = register_check
-        return d
-
-    def __new__(mcl, name, bases, dct):  # type: ignore
-        del dct["register_check"]
-        cls = super().__new__(mcl, name, bases, dct)
-        return cls
-
-
-class Conf(object, metaclass=MetaRegistry):
+class Conf:
     def __init__(self, confFile: str):
         self.general = self._load(confFile)
-        self._checkConf()
         self.fileExtenstions = self._getFileExt()
+        self.checkRegistry = checkRegistry
+
+        # run checks
+        self._checkCertName()
+        self._checkEncoding()
+        self._checkExtendedKeyUsage()
+        self._checkKeyUsage()
+        self._checkNotValidDate()
+        self._checkPubKeyEncodingPresent()
+        self._checkRedundantNames()
+        self._checkSerialization()
 
     def getCert(self, certName: str) -> dict:
         certs = self.general["certs"]
@@ -108,11 +99,20 @@ class Conf(object, metaclass=MetaRegistry):
     def _getFileExt(self) -> dict:
         return self.general["defaults"]["file_extentions"]
 
-    def _checkConf(self) -> None:
-        for fun in checkRegistry:
-            fun()
+    def _checkPubKeyEncodingPresent(self) -> None:
+        # check if the public key encoding is persent
+        certs = self.general["certs"]
+        for cert in certs:
+            try:
+                cert.get("conf").get("public_key").get("encoding")
+            except KeyError as e:
+                certName = cert.get("name")
+                logging.error(
+                    f"Configuration file error: can't find public key encoding for {certName}"
+                )
+                raise ValueError()
+                sys.exit()
 
-    @register_check  # noqa: F821
     def _checkRedundantNames(self) -> None:
         # check if no redundant certs names
         certs = self.general["certs"]
@@ -124,9 +124,10 @@ class Conf(object, metaclass=MetaRegistry):
                 names[cert["name"]] = 1
         for k, v in names.items():
             if v > 1:
-                raise logging.error(f"Configuration file error: {k} appears {v} times")
+                logging.error(f"Configuration file error: {k} appears {v} times")
+                raise ValueError()
+                sys.exit()
 
-    @register_check  # noqa: F821
     def _checkNotValidDate(self) -> None:
         # check not_valid_before not_valid_after
         certs = self.general["certs"]
@@ -141,59 +142,77 @@ class Conf(object, metaclass=MetaRegistry):
                     days=certConf["not_valid_before"]
                 )
             else:
-                raise logging.error(
-                    f'invalid value from {nvb}, should be of int or "now"'
-                )
+                logging.error(f'invalid value from {nvb}, should be of int or "now"')
+                raise ValueError()
                 sys.exit()
 
-    @register_check  # noqa: F821
     def _checkCertName(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
             subjectName = cert["conf"]["subject_name"]
             certName = cert["name"]
             if certName != subjectName:
-                raise logging.error(
+                logging.error(
                     f"certname {certName} has to be the same than the subject name, found {subjectName}"
                 )
+                raise ValueError()
                 sys.exit()
 
-    @register_check  # noqa: F821
     def _checkKeyUsage(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
-            for ku in cert["extensions"]["KeyUsage"]["items"]:
-                if ku.upper not in self.keyUsage:
-                    raise logging.error(f"{ku} not found in allowed keyUsage")
-                sys.exit()
+            certName = cert.get("name")
+            try:
+                for ku in cert["conf"]["extensions"]["KeyUsage"]["items"]:
+                    if ku.lower() not in self.keyUsage:
+                        logging.error(
+                            f"{ku} not found in allowed keyUsage for {certName}"
+                        )
+                        raise ValueError()
+                        sys.exit()
+            except Exception:
+                logging.error(f"can't find KeyUsages params for {certName}")
 
-    @register_check  # noqa: F821
     def _checkExtendedKeyUsage(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
-            for ku in cert["extensions"]["ExtendedKeyUsage"]["items"]:
-                if ku.upper() not in self.extendedKeyUsageMapping.keys():
-                    raise logging.error(f"{ku} not found in allowed ExtendedKeyUsage")
-                sys.exit()
+            if cert.get("conf").get("extensions").get("ExtendedKeyUsage"):
+                for ku in (
+                    cert.get("conf")
+                    .get("extensions")
+                    .get("ExtendedKeyUsage")
+                    .get("items")
+                ):
+                    if ku.upper() not in self.extendedKeyUsageMapping.keys():
+                        logging.error(f"{ku} not found in allowed ExtendedKeyUsage")
+                        raise ValueError()
+                        sys.exit()
 
-    @register_check  # noqa: F821
     def _checkEncoding(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
-            for ku in cert["private_key"]["encoding"]:
-                if ku.upper() not in self.encodingMapping.keys():
-                    raise logging.error(f"{ku} not found in allowed encoding formats")
+            certName = cert.get("name")
+            enc_priv = cert.get("conf").get("private_key").get("encoding").upper()
+            enc_pub = cert.get("conf").get("public_key").get("encoding").upper()
+            if (enc_priv not in self.encodingMapping.keys()) or (
+                enc_pub not in self.encodingMapping.keys()
+            ):
+                logging.error(
+                    f"encoding not found for {certName} in allowed encoding formats"
+                )
+                raise ValueError()
                 sys.exit()
 
-    @register_check  # noqa: F821
     def _checkSerialization(self) -> None:
         certs = self.general["certs"]
         for cert in certs:
-            for ku in cert["private_key"]["format"]:
-                if ku.upper() not in self.serializationMapping.keys():
-                    raise logging.error(
-                        f"{ku} not found in allowed serialization formats"
-                    )
+            certName = cert.get("name")
+            serialization = cert.get("conf").get("private_key").get("serialization")
+            if serialization not in self.serializationMapping.keys():
+                logging.error(
+                    f"serialization not found for private key of {certName} in allowed serialization formats"
+                )
+                raise ValueError()
                 sys.exit()
 
     nameAttributesMapping = {
@@ -238,19 +257,17 @@ class Conf(object, metaclass=MetaRegistry):
 
     hashMapping = {"sha512": hashes.SHA512(), "sha256": hashes.SHA256()}
 
-    keyUsage = set(
-        [
-            "digital_signature",
-            "content_commitment",
-            "key_encipherment",
-            "data_encipherment",
-            "key_agreement",
-            "key_cert_sign",
-            "crl_sign",
-            "encipher_only",
-            "decipher_only",
-        ]
-    )
+    keyUsage = [
+        "digital_signature",
+        "content_commitment",
+        "key_encipherment",
+        "data_encipherment",
+        "key_agreement",
+        "key_cert_sign",
+        "crl_sign",
+        "encipher_only",
+        "decipher_only",
+    ]
 
     extendedKeyUsageMapping = {
         "SERVER_AUTH": x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,

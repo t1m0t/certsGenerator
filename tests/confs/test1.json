@@ -27,12 +27,15 @@
                         }
                     },
                     "encoding": "PEM",
-                    "format": "PKCS8",
+                    "serialization": "PKCS8",
                     "sign_with_alg": "sha512",
                     "passphrase": {
                         "path": "tests/passphrase",
                         "fileName": "fortest"
                     }
+                },
+                "public_key": {
+                    "encoding": "PEM"
                 },
                 "subject_name": "root-ca",
                 "issuer_name": "root-ca",

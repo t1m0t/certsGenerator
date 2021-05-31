@@ -57,9 +57,17 @@ class CertManager:
 
     def storePublicKey(self, certName: str, cert: x509.Certificate) -> None:
         path = self.conf.getCertPath(certName=certName, ext="signed_certificate")
+        certConf = self.conf.getCert(certName=certName)
         try:
+            enc = certConf.get("public_key").get("encoding")
+            content = ""
+            if enc == "PEM":
+                content = cert.public_bytes(serialization.Encoding.PEM)
+            elif enc == "DER":
+                content = cert.public_bytes(serialization.Encoding.DER)
             with open(path, "wb") as f:
-                f.write(cert.public_bytes(serialization.Encoding.PEM))
+                f.write(content)
+
         except OSError:
             logging.error(f"can't save public key in {path}")
 
@@ -167,16 +175,39 @@ class CertManager:
         subjectCrtFile = self.conf.getCertPath(
             certName=subjectName, ext="signed_certificate"
         )
-        # load data
-        pem_issuer_public_key = loadFile(fileName=issuerCrtFile)
-        pem_subject_public_key = loadFile(fileName=subjectCrtFile)
-        # check
-        issuer_public_key = x509.load_pem_x509_certificate(  # type: ignore
-            pem_issuer_public_key
-        ).public_key()
-        cert_to_check = x509.load_pem_x509_certificate(
-            pem_subject_public_key
-        )  # type: ignore
+
+        # load certificates files
+        issuer_public_key = ""
+        subject_public_key = ""
+        if issuerCrtFile != subjectCrtFile:
+            issuer_public_key = loadFile(fileName=issuerCrtFile)
+            subject_public_key = loadFile(fileName=subjectCrtFile)
+        else:
+            subject_public_key = loadFile(fileName=subjectCrtFile)
+            issuer_public_key = subject_public_key
+
+        # extract issuer and subject public keys
+        issuer_cert_conf = self.conf.getCert(certName=issuerName)
+        subject_cert_conf = self.conf.getCert(certName=subjectName)
+        issuer_enc = issuer_cert_conf.get("public_key").get("encoding")
+        subj_enc = subject_cert_conf.get("public_key").get("encoding")
+        cert_to_check = ""
+
+        if issuer_enc == "PEM":
+            issuer_public_key = x509.load_pem_x509_certificate(
+                issuer_public_key
+            ).public_key()
+        elif issuer_enc == "DER":
+            issuer_public_key = x509.load_der_x509_certificate(
+                issuer_public_key
+            ).public_key()
+
+        if subj_enc == "PEM":
+            cert_to_check = x509.load_pem_x509_certificate(subject_public_key)
+        if subj_enc == "DER":
+            cert_to_check = x509.load_der_x509_certificate(subject_public_key)
+
+        # checking now
         if isinstance(issuer_public_key, rsa.RSAPublicKey):
             issuer_public_key.verify(
                 cert_to_check.signature,
@@ -206,7 +237,9 @@ class CertManager:
         self, certConf: Dict
     ) -> Tuple[serialization.Encoding, serialization.PrivateFormat]:
         encoding = self.conf.encodingMapping[certConf["private_key"]["encoding"]]
-        key_format = self.conf.serializationMapping[certConf["private_key"]["format"]]
+        key_format = self.conf.serializationMapping[
+            certConf["private_key"]["serialization"]
+        ]
 
         return encoding, key_format
 
