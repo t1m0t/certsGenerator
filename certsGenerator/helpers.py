@@ -21,3 +21,5 @@ def loadFile(fileName: str) -> bytes:
         return content  # type: ignore
     else:
         logging.error(f"File {fileName} doesn't exist")
+        raise ValueError()
+        sys.exit()

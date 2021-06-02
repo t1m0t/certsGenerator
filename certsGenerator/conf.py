@@ -43,7 +43,9 @@ class Conf:
                 conf = cert
                 break
         if not (len(conf) > 0):
-            raise logging.error(f"cert {certName} not found")
+            logging.error(f"cert {certName} not found")
+            raise ValueError()
+            sys.exit()
         return conf["conf"]
 
     def get(self, certName: str, field: str, isExt: bool = True) -> dict:
@@ -53,7 +55,9 @@ class Conf:
         elif certConf[field]:
             return certConf[field]
         else:
-            raise logging.error(f"{field} not found in conf")
+            logging.error(f"{field} not found in conf")
+            raise ValueError()
+            sys.exit()
 
     def getCertPath(self, certName: str, ext: str) -> str:
         certConf = self.getCert(certName)
@@ -78,7 +82,9 @@ class Conf:
             passphrase = loadFile(passFile)
 
             if not type(passphrase) == bytes:
-                raise logging.error("passphrase should be of bytes type")
+                logging.error("passphrase should be of bytes type")
+                raise ValueError()
+                sys.exit()
             return passphrase
         else:
             passphrase = None  # type: ignore

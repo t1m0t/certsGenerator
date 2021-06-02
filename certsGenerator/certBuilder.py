@@ -55,6 +55,7 @@ class CertBuilder:
                 )
         except ValueError() as e:
             logging.error(f"can't set not_valid_before: {e}")
+            sys.exit()
         nva: None
         try:
             nva = datetime.datetime.utcnow() + datetime.timedelta(
@@ -62,6 +63,7 @@ class CertBuilder:
             )
         except ValueError() as e:
             logging.error(f"can't set not_valid_after: {e}")
+            sys.exit()
 
         self.builder = self.builder.not_valid_before(nvb)
         self.builder = self.builder.not_valid_after(nva)
@@ -106,6 +108,7 @@ class CertBuilder:
                 )
             else:
                 raise logging.error(f"can't find SubjectAlternativeName {item}")
+                sys.exit()
             elList.append(el)
 
         self.builder = self.builder.add_extension(
@@ -220,9 +223,11 @@ class CertBuilder:
                     critical=isCritical,
                 )
             else:
-                raise logging.error(
+                logging.error(
                     "AuthorityKeyIdentifier can't be set because subject_name == issuer_name (self-signed), please correct the configuration"
                 )
+                raise ValueError()
+                sys.exit()
 
     def _setExtensions(self) -> None:
         certConf = self.conf.getCert(certName=self.certName)
@@ -244,7 +249,9 @@ class CertBuilder:
                 elif k == "AuthorityKeyIdentifier":
                     self._setAuthorityKeyIdentifier(extConf=extensionsConf[k])
                 else:
-                    raise logging.error(f"incorrect or not implemented extension {k}")
+                    logging.error(f"incorrect or not implemented extension {k}")
+                    raise ValueError()
+                    sys.exit()
 
     def _setAll(self) -> None:
         # get the conf

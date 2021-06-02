@@ -52,8 +52,10 @@ class CertManager:
                 os.chmod(path, mode=0o600)
             except OSError as e:
                 logging.error(f"can't set permission {stat.S_IRUSR} on {path}: {e}")
+                sys.exit()
         except OSError as e:
             logging.error(f"failed to write file {path}: {e}")
+            sys.exit()
 
     def storePublicKey(self, certName: str, cert: x509.Certificate) -> None:
         path = self.conf.getCertPath(certName=certName, ext="signed_certificate")
@@ -70,6 +72,7 @@ class CertManager:
 
         except OSError:
             logging.error(f"can't save public key in {path}")
+            sys.exit()
 
     def getPrivateKey(
         self, certName: str
@@ -104,6 +107,7 @@ class CertManager:
                 logging.error(
                     f"Error while loading the private key {keyFile}. Please make sure the key is properly generated and the file is not empty."
                 )
+                sys.exit()
 
         else:
             logging.info(f"Creating private key of {certName}")
@@ -126,7 +130,9 @@ class CertManager:
             elif key_type == "ED25519":
                 private_key = ed25519.Ed25519PrivateKey.generate()
             else:
-                raise logging.error(f"Key type not found or implemented {key_type}")
+                logging.error(f"Key type not found or implemented {key_type}")
+                raise ValueError()
+                sys.exit()
 
             self.storePrivateKey(
                 certName=certName, private_key=private_key
@@ -227,9 +233,11 @@ class CertManager:
                 cert_to_check.tbs_certificate_bytes,
             )
         else:
-            raise logging.error(
+            logging.error(
                 f"Failed to verify due to unsupported algorythm {type(cert_to_check.public_key())}"
             )
+            raise ValueError()
+            sys.exit()
 
         logging.info(f"signature validated for {subjectName}")
 
