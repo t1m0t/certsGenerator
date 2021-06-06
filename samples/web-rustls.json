@@ -1,0 +1,81 @@
+{
+    "defaults": {
+        "file_extentions": {
+            "private_key": "key",
+            "certificate_signing_request": "csr",
+            "signed_certificate": "crt"
+        }
+    },
+    "certs": [
+        {
+            "name": "backend_web_server",
+            "conf": {
+                "type": "leaf",
+                "storage": {
+                    "path": "certs/web/backend_web_server",
+                    "fileName": "backend_web_server"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "ECDSA"
+                        ],
+                        "type": "EC",
+                        "params": {
+                            "curve": "SECP384R1"
+                        }
+                    },
+                    "encoding": "PEM",
+                    "serialization": "PKCS8",
+                    "sign_with_alg": "sha384"
+                },
+                "public_key": {
+                    "encoding": "PEM"
+                },
+                "subject_name": "backend_web_server",
+                "issuer_name": "backend_web_server",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 365,
+                "subject_name_attributes": {
+                    "COUNTRY_NAME": "FR",
+                    "STATE_OR_PROVINCE_NAME": "state",
+                    "LOCALITY_NAME": "town",
+                    "ORGANIZATION_NAME": "aname",
+                    "COMMON_NAME": "backend_web_server"
+                },
+                "extensions": {
+                    "SubjectAlternativeName": {
+                        "items": [
+                            {
+                                "DNSName": "localhost"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "KeyUsage": {
+                        "items": [
+                            "digital_signature"
+                        ],
+                        "critical": "true"
+                    },
+                    "ExtendedKeyUsage": {
+                        "items": [
+                            "server_auth",
+                            "client_auth"
+                        ],
+                        "critical": "true"
+                    },
+                    "BasicConstraints": {
+                        "ca": "false",
+                        "critical": "true"
+                    },
+                    "SubjectKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,315 @@
+{
+    "defaults": {
+        "file_extentions": {
+            "private_key": "key",
+            "certificate_signing_request": "csr",
+            "signed_certificate": "crt"
+        }
+    },
+    "certs": [
+        {
+            "name": "postgres-root-ca",
+            "conf": {
+                "type": "root",
+                "storage": {
+                    "path": "certs/postgres/postgres-root-ca",
+                    "fileName": "postgres-root-ca"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": "ECDSA",
+                        "type": "EC",
+                        "params": {
+                            "curve": "SECP521R1"
+                        }
+                    },
+                    "encoding": "PEM",
+                    "serialization": "PKCS8",
+                    "sign_with_alg": "sha512",
+                    "passphrase": {
+                        "path": "passphrase",
+                        "fileName": "root"
+                    }
+                },
+                "public_key": {
+                    "encoding": "PEM"
+                },
+                "subject_name": "postgres-root-ca",
+                "issuer_name": "postgres-root-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 3650,
+                "subject_name_attributes": {
+                    "COUNTRY_NAME": "FR",
+                    "ORGANIZATION_NAME": "sample",
+                    "COMMON_NAME": "postgres-root-ca"
+                },
+                "extensions": {
+                    "KeyUsage": {
+                        "items": [
+                            "digital_signature",
+                            "key_cert_sign",
+                            "crl_sign"
+                        ],
+                        "critical": "true"
+                    },
+                    "BasicConstraints": {
+                        "ca": "true",
+                        "path_length": "none",
+                        "critical": "true"
+                    },
+                    "SubjectKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    }
+                }
+            }
+        },
+        {
+            "name": "postgres-server-ca",
+            "conf": {
+                "type": "intermediate",
+                "storage": {
+                    "path": "certs/postgres/postgres-server-ca",
+                    "fileName": "postgres-server-ca"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "ECDSA"
+                        ],
+                        "type": "EC",
+                        "params": {
+                            "curve": "SECP521R1"
+                        }
+                    },
+                    "encoding": "PEM",
+                    "serialization": "PKCS8",
+                    "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "PEM"
+                },
+                "subject_name": "postgres-server-ca",
+                "issuer_name": "postgres-root-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 1750,
+                "subject_name_attributes": {
+                    "COMMON_NAME": "postgres-server-ca"
+                },
+                "extensions": {
+                    "KeyUsage": {
+                        "items": [
+                            "digital_signature",
+                            "key_cert_sign",
+                            "crl_sign"
+                        ],
+                        "critical": "false"
+                    },
+                    "BasicConstraints": {
+                        "ca": "true",
+                        "path_length": "none",
+                        "critical": "true"
+                    },
+                    "SubjectKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    },
+                    "AuthorityKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    }
+                }
+            }
+        },
+        {
+            "name": "postgres-server1",
+            "conf": {
+                "type": "leaf",
+                "storage": {
+                    "path": "certs/postgres/postgres-server1",
+                    "fileName": "postgres-server1"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "ECDSA"
+                        ],
+                        "type": "EC",
+                        "params": {
+                            "curve": "SECP521R1"
+                        }
+                    },
+                    "encoding": "PEM",
+                    "serialization": "PKCS8",
+                    "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "PEM"
+                },
+                "subject_name": "postgres-server1",
+                "issuer_name": "postgres-server-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 365,
+                "subject_name_attributes": {
+                    "COMMON_NAME": "postgres-server1"
+                },
+                "extensions": {
+                    "SubjectAlternativeName": {
+                        "items": [
+                            {
+                                "DNSName": "localhost"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "KeyUsage": {
+                        "items": [
+                            "data_encipherment",
+                            "digital_signature"
+                        ],
+                        "critical": "false"
+                    },
+                    "BasicConstraints": {
+                        "ca": "false",
+                        "path_length": "none",
+                        "critical": "false"
+                    },
+                    "SubjectKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    },
+                    "AuthorityKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    }
+                }
+            }
+        },
+        {
+            "name": "postgres-client-ca",
+            "conf": {
+                "type": "intermediate",
+                "storage": {
+                    "path": "certs/postgres/postgres-client-ca",
+                    "fileName": "postgres-client-ca"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "ECDSA"
+                        ],
+                        "type": "EC",
+                        "params": {
+                            "curve": "SECP521R1"
+                        }
+                    },
+                    "encoding": "PEM",
+                    "serialization": "PKCS8",
+                    "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "PEM"
+                },
+                "subject_name": "postgres-client-ca",
+                "issuer_name": "postgres-root-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 1750,
+                "subject_name_attributes": {
+                    "COMMON_NAME": "postgres-client-ca"
+                },
+                "extensions": {
+                    "KeyUsage": {
+                        "items": [
+                            "digital_signature",
+                            "key_cert_sign",
+                            "crl_sign"
+                        ],
+                        "critical": "false"
+                    },
+                    "BasicConstraints": {
+                        "ca": "true",
+                        "path_length": "none",
+                        "critical": "true"
+                    },
+                    "SubjectKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    },
+                    "AuthorityKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    }
+                }
+            }
+        },
+        {
+            "name": "postgres-client1",
+            "conf": {
+                "type": "leaf",
+                "storage": {
+                    "path": "certs/postgres/postgres-client1",
+                    "fileName": "postgres-client1"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "ECDSA"
+                        ],
+                        "type": "EC",
+                        "params": {
+                            "curve": "SECP521R1"
+                        }
+                    },
+                    "encoding": "DER",
+                    "serialization": "PKCS8",
+                    "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "DER"
+                },
+                "subject_name": "postgres-client1",
+                "issuer_name": "postgres-client-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 365,
+                "subject_name_attributes": {
+                    "COMMON_NAME": "app_user"
+                },
+                "extensions": {
+                    "SubjectAlternativeName": {
+                        "items": [
+                            {
+                                "DNSName": "app_user"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "KeyUsage": {
+                        "items": [
+                            "data_encipherment",
+                            "digital_signature"
+                        ],
+                        "critical": "false"
+                    },
+                    "BasicConstraints": {
+                        "ca": "false",
+                        "path_length": "none",
+                        "critical": "false"
+                    },
+                    "SubjectKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    },
+                    "AuthorityKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    }
+                }
+            }
+        }
+    ]
+}
