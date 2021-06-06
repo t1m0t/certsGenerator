@@ -240,8 +240,11 @@ class Conf:
         "IPAddress": x509.IPAddress,
     }
 
-    # one supported at the moment
-    curveMapping = {"SECP521R1": ec.SECP521R1()}
+    curveMapping = {
+        "SECP256R1": ec.SECP256R1(),
+        "SECP384R1": ec.SECP384R1(),
+        "SECP521R1": ec.SECP521R1(),
+    }
 
     encodingMapping = {
         "PEM": serialization.Encoding.PEM,
@@ -261,7 +264,11 @@ class Conf:
         "PKCS1v15": padding.PKCS1v15,
     }
 
-    hashMapping = {"sha512": hashes.SHA512(), "sha256": hashes.SHA256()}
+    hashMapping = {
+        "sha256": hashes.SHA256(),
+        "sha384": hashes.SHA384(),
+        "sha512": hashes.SHA512(),
+    }
 
     keyUsage = [
         "digital_signature",

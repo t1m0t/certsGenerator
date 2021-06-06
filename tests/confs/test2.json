@@ -18,15 +18,15 @@
                 "private_key": {
                     "algorithm": {
                         "name": [
-                            "ECDSA"
+                            "RSA"
                         ],
-                        "type": "EC",
+                        "type": "RSA",
                         "params": {
-                            "curve": "SECP521R1"
+                            "key_size": 2048
                         }
                     },
                     "encoding": "PEM",
-                    "serialization": "PKCS8",
+                    "serialization": "TraditionalOpenSSL",
                     "sign_with_alg": "sha512",
                     "passphrase": {
                         "path": "tests/passphrase",
@@ -87,40 +87,36 @@
                     "SubjectKeyIdentifier": {
                         "set": "true",
                         "critical": "false"
-                    },
-                    "AuthorityKeyIdentifier": {
-                        "set": "false",
-                        "critical": "false"
                     }
                 }
             }
         },
         {
-            "name": "intermadiate-ca",
+            "name": "intermediate-ca",
             "conf": {
-                "type": "intermadiate-ca",
+                "type": "intermediate",
                 "storage": {
-                    "path": "certs/intermadiate-ca",
-                    "fileName": "intermadiate-ca"
+                    "path": "certs/intermediate-ca",
+                    "fileName": "intermediate-ca"
                 },
                 "private_key": {
                     "algorithm": {
                         "name": [
-                            "ECDSA"
+                            "RSA"
                         ],
-                        "type": "EC",
+                        "type": "RSA",
                         "params": {
-                            "curve": "SECP521R1"
+                            "key_size": 4096
                         }
                     },
-                    "encoding": "DER",
-                    "serialization": "TraditionalOpenSSL",
+                    "encoding": "PEM",
+                    "serialization": "PKCS8",
                     "sign_with_alg": "sha512"
                 },
                 "public_key": {
-                    "encoding": "DER"
+                    "encoding": "PEM"
                 },
-                "subject_name": "intermadiate-ca",
+                "subject_name": "intermediate-ca",
                 "issuer_name": "root-ca",
                 "version": 3,
                 "not_valid_before": "now",
@@ -130,7 +126,7 @@
                     "STATE_OR_PROVINCE_NAME": "Val d'Oise",
                     "LOCALITY_NAME": "Argenteuil",
                     "ORGANIZATION_NAME": "smartius",
-                    "COMMON_NAME": "intermadiate-ca"
+                    "COMMON_NAME": "intermediate-ca"
                 },
                 "extensions": {
                     "SubjectAlternativeName": {

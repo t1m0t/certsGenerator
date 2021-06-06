@@ -96,12 +96,12 @@
             }
         },
         {
-            "name": "intermadiate-ca",
+            "name": "intermediate-ca",
             "conf": {
-                "type": "intermadiate-ca",
+                "type": "intermediate",
                 "storage": {
-                    "path": "certs/intermadiate-ca",
-                    "fileName": "intermadiate-ca"
+                    "path": "certs/intermediate-ca",
+                    "fileName": "intermediate-ca"
                 },
                 "private_key": {
                     "algorithm": {
@@ -120,7 +120,7 @@
                 "public_key": {
                     "encoding": "PEM"
                 },
-                "subject_name": "intermadiate-ca",
+                "subject_name": "intermediate-ca",
                 "issuer_name": "root-ca",
                 "version": 3,
                 "not_valid_before": "now",
@@ -130,7 +130,7 @@
                     "STATE_OR_PROVINCE_NAME": "Val d'Oise",
                     "LOCALITY_NAME": "Argenteuil",
                     "ORGANIZATION_NAME": "smartius",
-                    "COMMON_NAME": "intermadiate-ca"
+                    "COMMON_NAME": "intermediate-ca"
                 },
                 "extensions": {
                     "SubjectAlternativeName": {
@@ -183,6 +183,68 @@
                     "AuthorityKeyIdentifier": {
                         "set": "true",
                         "critical": "false"
+                    }
+                }
+            }
+        },
+        {
+            "name": "test_leaf",
+            "conf": {
+                "type": "test_leaf",
+                "storage": {
+                    "path": "certs/test_leaf",
+                    "fileName": "test_leaf"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "ED25519"
+                        ],
+                        "type": "ED25519"
+                    },
+                    "encoding": "PEM",
+                    "serialization": "PKCS8",
+                    "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "PEM"
+                },
+                "subject_name": "test_leaf",
+                "issuer_name": "intermediate-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 1750,
+                "subject_name_attributes": {
+                    "COUNTRY_NAME": "FR",
+                    "STATE_OR_PROVINCE_NAME": "state",
+                    "LOCALITY_NAME": "town",
+                    "ORGANIZATION_NAME": "aname",
+                    "COMMON_NAME": "test_leaf"
+                },
+                "extensions": {
+                    "SubjectAlternativeName": {
+                        "items": [
+                            {
+                                "DNSName": "localhost"
+                            },
+                            {
+                                "DNSName": "dev.local"
+                            },
+                            {
+                                "IPAddressV4": "127.0.0.1"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "KeyUsage": {
+                        "items": [
+                            "data_encipherment"
+                        ],
+                        "critical": "true"
+                    },
+                    "BasicConstraints": {
+                        "ca": "false",
+                        "critical": "true"
                     }
                 }
             }

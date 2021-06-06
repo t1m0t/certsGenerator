@@ -107,7 +107,8 @@ class CertBuilder:
                     IPv6Address(item.get("IPNetworkV6"))
                 )
             else:
-                raise logging.error(f"can't find SubjectAlternativeName {item}")
+                logging.error(f"can't find SubjectAlternativeName {item}")
+                raise ValueError()
                 sys.exit()
             elList.append(el)
 
@@ -207,12 +208,17 @@ class CertBuilder:
                 issuer_cert = None
                 # load crt file from constructed path if it exists
                 if os.path.exists(issuerCrtFile):
-                    pem_data = loadFile(fileName=issuerCrtFile)
-                    issuer_cert = x509.load_pem_x509_certificate(
-                        pem_data
-                    )  # type: ignore
+                    cert_data = loadFile(fileName=issuerCrtFile)
+                    enc = issuer_conf.get("public_key").get("encoding")
+                    if enc == "DER":
+                        issuer_cert = x509.load_der_x509_certificate(cert_data)
+                    elif enc == "PEM":
+                        issuer_cert = x509.load_pem_x509_certificate(cert_data)
+
                 else:
-                    raise logging.error(f"can't find issuer crt file {issuerCrtFile}")
+                    logging.error(f"can't find issuer crt file {issuerCrtFile}")
+                    raise ValueError()
+                    sys.exit()
 
                 isCritical = True if extConf.get("critical") == "true" else False
 

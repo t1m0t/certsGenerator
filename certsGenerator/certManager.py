@@ -183,8 +183,8 @@ class CertManager:
         )
 
         # load certificates files
-        issuer_public_key = ""
-        subject_public_key = ""
+        issuer_public_key = b""
+        subject_public_key = b""
         if issuerCrtFile != subjectCrtFile:
             issuer_public_key = loadFile(fileName=issuerCrtFile)
             subject_public_key = loadFile(fileName=subjectCrtFile)
