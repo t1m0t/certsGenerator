@@ -5,10 +5,11 @@ name = "pypi"
 
 [packages]
 orjson = "*"
-cryptography = "==3.4.7"
+cryptography = "==3.4.8"
 click = "*"
 
 [dev-packages]
+pipenv = "*"
 mypy = "*"
 flake8 = "*"
 black = "*"
