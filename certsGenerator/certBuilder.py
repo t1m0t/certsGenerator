@@ -3,12 +3,8 @@ import sys
 import datetime
 import logging
 from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network
-from typing import Union
 
 from cryptography import x509
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 from certsGenerator.conf import Conf
 from certsGenerator.helpers import loadFile
@@ -100,11 +96,11 @@ class CertBuilder:
                 )
             elif item.get("IPNetworkV4"):
                 el = self.conf.extensionMapping["IPAddress"](
-                    IPv4Address(item.get("IPNetworkV4"))
+                    IPv4Network(item.get("IPNetworkV4"))
                 )
             elif item.get("IPNetworkV6"):
                 el = self.conf.extensionMapping["IPAddress"](
-                    IPv6Address(item.get("IPNetworkV6"))
+                    IPv6Network(item.get("IPNetworkV6"))
                 )
             else:
                 logging.error(f"can't find SubjectAlternativeName {item}")
@@ -260,8 +256,6 @@ class CertBuilder:
                     sys.exit()
 
     def _setAll(self) -> None:
-        # get the conf
-        certConf = self.conf.getCert(certName=self.certName)
         # set the cert configuration
         self._setNameAttributes()
         self._setNotValid()

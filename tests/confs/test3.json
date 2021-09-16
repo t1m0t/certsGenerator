@@ -190,7 +190,7 @@
         {
             "name": "test_leaf",
             "conf": {
-                "type": "test_leaf",
+                "type": "leaf",
                 "storage": {
                     "path": "certs/test_leaf",
                     "fileName": "test_leaf"
@@ -220,6 +220,69 @@
                     "LOCALITY_NAME": "town",
                     "ORGANIZATION_NAME": "aname",
                     "COMMON_NAME": "test_leaf"
+                },
+                "extensions": {
+                    "SubjectAlternativeName": {
+                        "items": [
+                            {
+                                "DNSName": "localhost"
+                            },
+                            {
+                                "DNSName": "dev.local"
+                            },
+                            {
+                                "IPAddressV4": "127.0.0.1"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "KeyUsage": {
+                        "items": [
+                            "data_encipherment"
+                        ],
+                        "critical": "true"
+                    },
+                    "BasicConstraints": {
+                        "ca": "false",
+                        "critical": "true"
+                    }
+                }
+            }
+        },
+        {
+            "name": "test_leaf2",
+            "conf": {
+                "type": "leaf",
+                "storage": {
+                    "path": "certs/test_leaf2",
+                    "fileName": "test_leaf2"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "ED25519"
+                        ],
+                        "type": "ED25519"
+                    },
+                    "encoding": "PEM",
+                    "serialization": "OpenSSH",
+                    "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "PEM",
+                    "format": "OpenSSH"
+                },
+                "subject_name": "test_leaf2",
+                "issuer_name": "intermediate-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 1750,
+                "subject_name_attributes": {
+                    "COUNTRY_NAME": "FR",
+                    "STATE_OR_PROVINCE_NAME": "state",
+                    "LOCALITY_NAME": "town",
+                    "ORGANIZATION_NAME": "aname",
+                    "COMMON_NAME": "test_leaf2"
                 },
                 "extensions": {
                     "SubjectAlternativeName": {

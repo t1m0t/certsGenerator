@@ -60,15 +60,19 @@ class CertManager:
     def storePublicKey(self, certName: str, cert: x509.Certificate) -> None:
         path = self.conf.getCertPath(certName=certName, ext="signed_certificate")
         certConf = self.conf.getCert(certName=certName)
+        # get other params from conf
+        encoding, format = self._getParamsForPublicBytes(certConf=certConf)
         try:
-            enc = certConf.get("public_key").get("encoding")
-            content = ""
-            if enc == "PEM":
-                content = cert.public_bytes(serialization.Encoding.PEM)
-            elif enc == "DER":
-                content = cert.public_bytes(serialization.Encoding.DER)
-            with open(path, "wb") as f:
-                f.write(content)
+            if certConf.get("public_key").get("encoding") == "OpenSSH":
+                print(type(cert.public_key()))
+                content = cert.public_key().public_bytes(encoding, format)
+                with open(path, "wb") as f:
+                    f.write(content)
+            # DER or PEM encodings
+            else:
+                content = cert.public_bytes(encoding)
+                with open(path, "wb") as f:
+                    f.write(content)
 
         except OSError:
             logging.error(f"can't save public key in {path}")
@@ -95,17 +99,22 @@ class CertManager:
             private_key_bytes = loadFile(fileName=keyFile)
             password = self.conf.getPassphrase(certName=certName)
             try:
-                if certConf.get("private_key").get("encoding") == "PEM":
+                enc = certConf.get("private_key").get("encoding")
+                if enc == "PEM":
                     private_key = serialization.load_pem_private_key(  # type: ignore
                         private_key_bytes, password=password
                     )
-                elif certConf.get("private_key").get("encoding") == "DER":
+                elif enc == "DER":
                     private_key = serialization.load_der_private_key(  # type: ignore
+                        private_key_bytes, password=password
+                    )
+                elif enc == "OpenSSH":
+                    private_key = serialization.load_ssh_private_key(  # type: ignore
                         private_key_bytes, password=password
                     )
             except ValueError as e:
                 logging.error(
-                    f"Error while loading the private key {keyFile}. Please make sure the key is properly generated and the file is not empty."
+                    f"Error while loading the private key {keyFile}. Please make sure the key is properly generated and the file is not empty. {e}"
                 )
                 sys.exit()
 
@@ -244,10 +253,35 @@ class CertManager:
     def _getParamsForPrivateBytes(
         self, certConf: Dict
     ) -> Tuple[serialization.Encoding, serialization.PrivateFormat]:
-        encoding = self.conf.encodingMapping[certConf["private_key"]["encoding"]]
-        key_format = self.conf.serializationMapping[
-            certConf["private_key"]["serialization"]
+        encoding = self.conf.encodingMapping.get(
+            certConf.get("private_key").get("encoding")
+        )
+        key_format = self.conf.privateSerializationMapping[
+            certConf.get("private_key").get("serialization")
         ]
+
+        return encoding, key_format
+
+    def _getParamsForPublicBytes(
+        self, certConf: Dict
+    ) -> Tuple[serialization.Encoding, serialization.PublicFormat]:
+        encoding = self.conf.encodingMapping.get(
+            certConf.get("public_key").get("encoding")
+        )
+        key_format: serialization.PublicFormat = None
+        try:
+            # default key format is SubjectPublicKeyInfo if not specified
+            if certConf.get("public_key").get("serialization", None) is None:
+                key_format = self.conf.publicSerializationMapping[
+                    "SubjectPublicKeyInfo"
+                ]
+            else:
+                key_format = self.conf.publicSerializationMapping[
+                    certConf.get("public_key").get("serialization")
+                ]
+        except ValueError as e:
+            logging.error(f"Enable to set key format due to error {e}")
+            sys.exit()
 
         return encoding, key_format
 

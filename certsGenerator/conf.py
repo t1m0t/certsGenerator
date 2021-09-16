@@ -1,13 +1,12 @@
 import datetime
 import sys
 import logging
-import functools
 
 from orjson import loads, JSONEncodeError
-from typing import Callable, Union, Dict, List
+from typing import Union
 
 from cryptography import x509
-from cryptography.x509.oid import NameOID, ExtensionOID, ExtendedKeyUsageOID
+from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -114,7 +113,7 @@ class Conf:
             except KeyError as e:
                 certName = cert.get("name")
                 logging.error(
-                    f"Configuration file error: can't find public key encoding for {certName}"
+                    f"Configuration file error: can't find public key encoding for {certName}, {e}"
                 )
                 raise ValueError()
                 sys.exit()
@@ -198,8 +197,8 @@ class Conf:
         certs = self.general["certs"]
         for cert in certs:
             certName = cert.get("name")
-            enc_priv = cert.get("conf").get("private_key").get("encoding").upper()
-            enc_pub = cert.get("conf").get("public_key").get("encoding").upper()
+            enc_priv = cert.get("conf").get("private_key").get("encoding")
+            enc_pub = cert.get("conf").get("public_key").get("encoding")
             if (enc_priv not in self.encodingMapping.keys()) or (
                 enc_pub not in self.encodingMapping.keys()
             ):
@@ -214,7 +213,7 @@ class Conf:
         for cert in certs:
             certName = cert.get("name")
             serialization = cert.get("conf").get("private_key").get("serialization")
-            if serialization not in self.serializationMapping.keys():
+            if serialization not in self.privateSerializationMapping.keys():
                 logging.error(
                     f"serialization not found for private key of {certName} in allowed serialization formats"
                 )
@@ -249,13 +248,22 @@ class Conf:
     encodingMapping = {
         "PEM": serialization.Encoding.PEM,
         "DER": serialization.Encoding.DER,
+        "Raw": serialization.Encoding.Raw,
+        "OpenSSH": serialization.Encoding.OpenSSH,
     }
 
-    serializationMapping = {
+    privateSerializationMapping = {
         "PKCS8": serialization.PrivateFormat.PKCS8,
         "TraditionalOpenSSL": serialization.PrivateFormat.TraditionalOpenSSL,
         "Raw": serialization.PrivateFormat.Raw,
-        "OpenSSH": serialization.PrivateFormat.OpenSSH,  # type: ignore
+        "OpenSSH": serialization.PrivateFormat.OpenSSH,
+    }
+
+    publicSerializationMapping = {
+        "SubjectPublicKeyInfo": serialization.PublicFormat.SubjectPublicKeyInfo,
+        "PKCS1": serialization.PublicFormat.PKCS1,
+        "Raw": serialization.PublicFormat.Raw,
+        "OpenSSH": serialization.PublicFormat.OpenSSH,
     }
 
     RSApaddingMapping = {

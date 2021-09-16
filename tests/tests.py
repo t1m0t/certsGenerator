@@ -1,15 +1,6 @@
 import unittest
-import os
-
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.serialization import load_pem_public_key
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.asymmetric import ec
 
 from certsGenerator.main import CertsGenerator
-from certsGenerator.helpers import loadFile
-
 from tests.helpers import delDir
 
 
