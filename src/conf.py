@@ -3,7 +3,7 @@ import sys
 import logging
 
 from orjson import loads, JSONEncodeError
-from typing import Union
+from typing import Union, Dict, Any
 
 from cryptography import x509
 from cryptography.x509.oid import NameOID
@@ -19,7 +19,6 @@ class Conf:
     def __init__(self, confFile: str):
         self.general = self._load(confFile)
         self.fileExtenstions = self._getFileExt()
-        self.checkRegistry = list()
 
         # run checks
         self._checkCertName()
@@ -31,7 +30,7 @@ class Conf:
         self._checkRedundantNames()
         self._checkSerialization()
 
-    def getCert(self, certName: str) -> dict:
+    def getCert(self, certName: str) -> Dict[Any, Any]:
         certs = self.general["certs"]
         conf = {}
         for cert in certs:
@@ -47,7 +46,7 @@ class Conf:
     def get(self, certName: str, field: str, isExt: bool = True) -> dict:
         certConf = self.getCert(certName)
         if isExt is True:
-            return certConf.get("extensions").get(field)
+            return certConf.get("extensions").get(field)  # type: ignore
         elif certConf.get(field):
             return certConf.get(field)
         else:
@@ -57,15 +56,15 @@ class Conf:
 
     def getCertPath(self, certName: str, ext: str) -> str:
         certConf = self.getCert(certName)
-        path = certConf.get("storage").get("path")
-        fileName = certConf.get("storage").get("fileName")
-        ext = self.fileExtenstions.get(ext)
+        path = certConf.get("storage").get("path")  # type: ignore
+        fileName = certConf.get("storage").get("fileName")  # type: ignore
+        ext = self.fileExtenstions.get(ext)  # type: ignore
         certpath = f"{path}/{fileName}.{ext}"
         return certpath
 
     def getPath(self, certName: str) -> str:
         certConf = self.getCert(certName)
-        path = certConf.get("storage").get("path")
+        path = certConf.get("storage").get("path")  # type: ignore
         return path
 
     def getPassphrase(self, certName: str) -> Union[bytes, None]:
@@ -74,8 +73,8 @@ class Conf:
         if certConf.get("private_key") and certConf.get("private_key").get(
             "passphrase"
         ):
-            p = certConf.get("private_key").get("passphrase").get("path")
-            n = certConf.get("private_key").get("passphrase").get("fileName")
+            p = certConf.get("private_key").get("passphrase").get("path")  # type: ignore
+            n = certConf.get("private_key").get("passphrase").get("fileName")  # type: ignore
             passFile = f"{p}/{n}"
             passphrase = loadFile(passFile)
 
@@ -166,13 +165,9 @@ class Conf:
         certs = self.general.get("certs")
         for cert in certs:
             certName = cert.get("name")
-            for ku in (
-                cert.get("conf").get("extensions").get("KeyUsage").get("items")
-            ):
+            for ku in cert.get("conf").get("extensions").get("KeyUsage").get("items"):
                 if ku.lower() not in self.keyUsage:
-                    logging.error(
-                        f"{ku} not found in allowed keyUsage for {certName}"
-                    )
+                    logging.error(f"{ku} not found in allowed keyUsage for {certName}")
                     raise ValueError()
                     sys.exit()
 
