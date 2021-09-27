@@ -1,7 +1,7 @@
 import click
 import logging
 
-from certsGenerator.certManager import CertManager
+from src.certManager import CertManager
 
 
 class CertsGenerator:
@@ -15,8 +15,8 @@ class CertsGenerator:
 
     def run(self) -> None:
         cerManager = CertManager(confFile=self.CONF_FILE)
-        for certConf in cerManager.conf.general["certs"]:
-            cerManager.createCerts(certName=certConf["name"])
+        for certConf in cerManager.conf.general.get("certs"):
+            cerManager.createCerts(certName=certConf.get("name"))
 
 
 @click.command()

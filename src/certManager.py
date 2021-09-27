@@ -10,9 +10,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from certsGenerator.conf import Conf
-from certsGenerator.helpers import loadFile
-from certsGenerator.certBuilder import CertBuilder
+from src.conf import Conf
+from src.helpers import loadFile
+from src.certBuilder import CertBuilder
 
 
 class CertManager:
@@ -27,27 +27,32 @@ class CertManager:
         ],
     ) -> None:
         certConf = self.conf.getCert(certName=certName)
-
         # get passphrase
         passphrase = self.conf.getPassphrase(certName=certName)
-
         # set encryption algorithm
         encryption_algorithm = self._getEncryptionAlgorithm(passphrase=passphrase)
-
         # get other params from conf
         encoding, key_format = self._getParamsForPrivateBytes(certConf=certConf)
-
         # get path and save the key file
         path = self.conf.getCertPath(certName=certName, ext="private_key")
+
+        content: bytes = None
         try:
-            with open(path, mode="wb") as f:
-                f.write(
-                    private_key.private_bytes(  # type: ignore
-                        encoding=encoding,
-                        format=key_format,
-                        encryption_algorithm=encryption_algorithm,
-                    )
+            if certConf.get("private_key").get("serialization").lower() == "openssh":
+                content = serialization.ssh.serialize_ssh_private_key(
+                    private_key, password=passphrase
                 )
+            else:
+                content = private_key.private_bytes(
+                    encoding=encoding,
+                    format=key_format,
+                    encryption_algorithm=encryption_algorithm,
+                )
+
+            with open(path, mode="wb") as f:
+                f.write(content)
+
+            # set proper file permission for security
             try:
                 os.chmod(path, mode=0o600)
             except OSError as e:
@@ -60,16 +65,16 @@ class CertManager:
     def storePublicKey(self, certName: str, cert: x509.Certificate) -> None:
         path = self.conf.getCertPath(certName=certName, ext="signed_certificate")
         certConf = self.conf.getCert(certName=certName)
-        # get other params from conf
-        encoding, format = self._getParamsForPublicBytes(certConf=certConf)
+        format = certConf.get("public_key").get("format", None)
+
         try:
-            if certConf.get("public_key").get("encoding") == "OpenSSH":
-                print(type(cert.public_key()))
-                content = cert.public_key().public_bytes(encoding, format)
+            if type(format) == str and format.lower() == "openssh":
+                content = serialization.ssh.serialize_ssh_public_key(cert.public_key())
                 with open(path, "wb") as f:
                     f.write(content)
             # DER or PEM encodings
             else:
+                encoding, _ = self._getParamsForPublicBytes(certConf=certConf)
                 content = cert.public_bytes(encoding)
                 with open(path, "wb") as f:
                     f.write(content)
@@ -78,6 +83,7 @@ class CertManager:
             logging.error(f"can't save public key in {path}")
             sys.exit()
 
+    # info: this method may be used for signing purpose
     def getPrivateKey(
         self, certName: str
     ) -> Union[ec.EllipticCurvePrivateKey, rsa.RSAPrivateKey]:
@@ -101,17 +107,19 @@ class CertManager:
             try:
                 enc = certConf.get("private_key").get("encoding")
                 if enc == "PEM":
-                    private_key = serialization.load_pem_private_key(  # type: ignore
+                    private_key = serialization.load_pem_private_key(
                         private_key_bytes, password=password
                     )
                 elif enc == "DER":
-                    private_key = serialization.load_der_private_key(  # type: ignore
+                    private_key = serialization.load_der_private_key(
                         private_key_bytes, password=password
                     )
-                elif enc == "OpenSSH":
-                    private_key = serialization.load_ssh_private_key(  # type: ignore
-                        private_key_bytes, password=password
-                    )
+                # this use case is not supposed to be happen as ssh private key is only written
+                # when created once (no further use)
+                # elif enc.to_lower() == "openssh":
+                #    private_key = serialization.load_ssh_private_key(
+                #        private_key_bytes, password=password
+                #    )
             except ValueError as e:
                 logging.error(
                     f"Error while loading the private key {keyFile}. Please make sure the key is properly generated and the file is not empty. {e}"
@@ -120,21 +128,19 @@ class CertManager:
 
         else:
             logging.info(f"Creating private key of {certName}")
-            key_type: str = certConf["private_key"]["algorithm"]["type"].upper()
-            params = []
+            key_type: str = (
+                certConf.get("private_key").get("algorithm").get("type").upper()
+            )
 
-            if certConf.get("private_key").get("algorithm").get("params"):
-                params = certConf["private_key"]["algorithm"]["params"]
-            else:
-                params = None
+            params = certConf.get("private_key").get("algorithm").get("params", None)
 
             if key_type == "EC":
-                private_key = ec.generate_private_key(  # type: ignore
-                    curve=self.conf.curveMapping[params["curve"]]
+                private_key = ec.generate_private_key(
+                    curve=self.conf.curveMapping.get(params.get("curve"))
                 )
             elif key_type == "RSA":
-                private_key = rsa.generate_private_key(  # type: ignore
-                    public_exponent=65537, key_size=int(params["key_size"])
+                private_key = rsa.generate_private_key(
+                    public_exponent=65537, key_size=int(params.get("key_size"))
                 )
             elif key_type == "ED25519":
                 private_key = ed25519.Ed25519PrivateKey.generate()
@@ -143,10 +149,8 @@ class CertManager:
                 raise ValueError()
                 sys.exit()
 
-            self.storePrivateKey(
-                certName=certName, private_key=private_key
-            )  # type: ignore
-        return private_key  # type: ignore
+            self.storePrivateKey(certName=certName, private_key=private_key)
+        return private_key
 
     def createCerts(self, certName: str) -> None:
         certConf = self.conf.getCert(certName=certName)
@@ -167,12 +171,12 @@ class CertManager:
             cert = CertBuilder(certName=subject_name, conf=self.conf, ski=ski).builder
             cert = cert.public_key(private_key.public_key())
             # now sign the cert with the issuer private key
-            hashAlg = self.conf.hashMapping[certConf["private_key"]["sign_with_alg"]]
-            cert = cert.sign(
-                private_key=issuer_private_key, algorithm=hashAlg
-            )  # type: ignore
+            hashAlg = self.conf.hashMapping.get(
+                certConf.get("private_key").get("sign_with_alg")
+            )
+            cert = cert.sign(private_key=issuer_private_key, algorithm=hashAlg)
             # now store the cert
-            self.storePublicKey(certName=certName, cert=cert)  # type: ignore
+            self.storePublicKey(certName=certName, cert=cert)
             logging.info(
                 f"Cert created for {certName} with crt signed by {issuer_name}"
             )
@@ -208,47 +212,55 @@ class CertManager:
         subj_enc = subject_cert_conf.get("public_key").get("encoding")
         cert_to_check = ""
 
-        if issuer_enc == "PEM":
-            issuer_public_key = x509.load_pem_x509_certificate(
-                issuer_public_key
-            ).public_key()
-        elif issuer_enc == "DER":
-            issuer_public_key = x509.load_der_x509_certificate(
-                issuer_public_key
-            ).public_key()
-
-        if subj_enc == "PEM":
-            cert_to_check = x509.load_pem_x509_certificate(subject_public_key)
-        if subj_enc == "DER":
-            cert_to_check = x509.load_der_x509_certificate(subject_public_key)
-
-        # checking now
-        if isinstance(issuer_public_key, rsa.RSAPublicKey):
-            issuer_public_key.verify(
-                cert_to_check.signature,
-                cert_to_check.tbs_certificate_bytes,
-                self.conf.RSApaddingMapping["PKCS1v15"](),
-                cert_to_check.signature_hash_algorithm,
-            )
-        elif isinstance(issuer_public_key, ec.EllipticCurvePublicKey):
-            issuer_public_key.verify(  # type: ignore
-                cert_to_check.signature,
-                cert_to_check.tbs_certificate_bytes,
-                ec.ECDSA(cert_to_check.signature_hash_algorithm),
-            )
-        elif isinstance(issuer_public_key, ed25519.Ed25519PublicKey):
-            issuer_public_key.verify(  # type: ignore
-                cert_to_check.signature,
-                cert_to_check.tbs_certificate_bytes,
-            )
+        if issuer_enc.lower() == "openssh" or subj_enc.lower() == "openssh":
+            logging.info("OpenSSH public keys signatures are not checked")
+            pass
         else:
-            logging.error(
-                f"Failed to verify due to unsupported algorythm {type(cert_to_check.public_key())}"
-            )
-            raise ValueError()
-            sys.exit()
+            if issuer_enc == "PEM":
+                issuer_public_key = x509.load_pem_x509_certificate(
+                    issuer_public_key
+                ).public_key()
+            elif issuer_enc == "DER":
+                issuer_public_key = x509.load_der_x509_certificate(
+                    issuer_public_key
+                ).public_key()
 
-        logging.info(f"signature validated for {subjectName}")
+            if subj_enc == "PEM":
+                cert_to_check = x509.load_pem_x509_certificate(subject_public_key)
+            elif subj_enc == "DER":
+                cert_to_check = x509.load_der_x509_certificate(subject_public_key)
+
+            try:
+                # checking now
+                if isinstance(issuer_public_key, rsa.RSAPublicKey):
+                    issuer_public_key.verify(
+                        cert_to_check.signature,
+                        cert_to_check.tbs_certificate_bytes,
+                        self.conf.RSApaddingMapping["PKCS1v15"](),
+                        cert_to_check.signature_hash_algorithm,
+                    )
+                elif isinstance(issuer_public_key, ec.EllipticCurvePublicKey):
+                    issuer_public_key.verify(
+                        cert_to_check.signature,
+                        cert_to_check.tbs_certificate_bytes,
+                        ec.ECDSA(cert_to_check.signature_hash_algorithm),
+                    )
+                elif isinstance(issuer_public_key, ed25519.Ed25519PublicKey):
+                    issuer_public_key.verify(
+                        cert_to_check.signature,
+                        cert_to_check.tbs_certificate_bytes,
+                    )
+                else:
+                    logging.error(
+                        f"Failed to verify due to unsupported algorythm {type(cert_to_check.public_key())}"
+                    )
+                    raise ValueError()
+                    sys.exit()
+            except ValueError as e:
+                logging.error(f"Signature verification failed: {e}")
+                sys.exit()
+
+            logging.info(f"Signature validation success for {subjectName}")
 
     def _getParamsForPrivateBytes(
         self, certConf: Dict
@@ -269,6 +281,7 @@ class CertManager:
             certConf.get("public_key").get("encoding")
         )
         key_format: serialization.PublicFormat = None
+
         try:
             # default key format is SubjectPublicKeyInfo if not specified
             if certConf.get("public_key").get("serialization", None) is None:

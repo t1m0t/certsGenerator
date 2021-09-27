@@ -12,17 +12,14 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from certsGenerator.helpers import loadFile
-
-
-checkRegistry = []
+from src.helpers import loadFile
 
 
 class Conf:
     def __init__(self, confFile: str):
         self.general = self._load(confFile)
         self.fileExtenstions = self._getFileExt()
-        self.checkRegistry = checkRegistry
+        self.checkRegistry = list()
 
         # run checks
         self._checkCertName()
@@ -45,14 +42,14 @@ class Conf:
             logging.error(f"cert {certName} not found")
             raise ValueError()
             sys.exit()
-        return conf["conf"]
+        return conf.get("conf")
 
     def get(self, certName: str, field: str, isExt: bool = True) -> dict:
         certConf = self.getCert(certName)
         if isExt is True:
-            return certConf["extensions"][field]
-        elif certConf[field]:
-            return certConf[field]
+            return certConf.get("extensions").get(field)
+        elif certConf.get(field):
+            return certConf.get(field)
         else:
             logging.error(f"{field} not found in conf")
             raise ValueError()
@@ -60,23 +57,25 @@ class Conf:
 
     def getCertPath(self, certName: str, ext: str) -> str:
         certConf = self.getCert(certName)
-        path = certConf["storage"]["path"]
-        fileName = certConf["storage"]["fileName"]
-        ext = self.fileExtenstions[ext]
+        path = certConf.get("storage").get("path")
+        fileName = certConf.get("storage").get("fileName")
+        ext = self.fileExtenstions.get(ext)
         certpath = f"{path}/{fileName}.{ext}"
         return certpath
 
     def getPath(self, certName: str) -> str:
         certConf = self.getCert(certName)
-        path = certConf["storage"]["path"]
+        path = certConf.get("storage").get("path")
         return path
 
     def getPassphrase(self, certName: str) -> Union[bytes, None]:
         # get passphrase
         certConf = self.getCert(certName)
-        if certConf.get("private_key") and certConf.get("private_key").get("passphrase"):  # type: ignore
-            p = certConf["private_key"]["passphrase"]["path"]
-            n = certConf["private_key"]["passphrase"]["fileName"]
+        if certConf.get("private_key") and certConf.get("private_key").get(
+            "passphrase"
+        ):
+            p = certConf.get("private_key").get("passphrase").get("path")
+            n = certConf.get("private_key").get("passphrase").get("fileName")
             passFile = f"{p}/{n}"
             passphrase = loadFile(passFile)
 
@@ -86,7 +85,7 @@ class Conf:
                 sys.exit()
             return passphrase
         else:
-            passphrase = None  # type: ignore
+            passphrase = None
             return passphrase
 
     def _load(self, fileName: str) -> dict:
@@ -102,7 +101,7 @@ class Conf:
         return generalConf
 
     def _getFileExt(self) -> dict:
-        return self.general["defaults"]["file_extentions"]
+        return self.general.get("defaults").get("file_extentions")
 
     def _checkPubKeyEncodingPresent(self) -> None:
         # check if the public key encoding is persent
@@ -120,7 +119,7 @@ class Conf:
 
     def _checkRedundantNames(self) -> None:
         # check if no redundant certs names
-        certs = self.general["certs"]
+        certs = self.general.get("certs")
         names: dict = {}
         for cert in certs:
             if cert["name"] in names.keys():
@@ -135,16 +134,16 @@ class Conf:
 
     def _checkNotValidDate(self) -> None:
         # check not_valid_before not_valid_after
-        certs = self.general["certs"]
+        certs = self.general.get("certs")
         for certConf in certs:
-            certConf = certConf["conf"]
-            if certConf["not_valid_before"] == "now":
+            certConf = certConf.get("conf")
+            if certConf.get("not_valid_before") == "now":
                 nvb = datetime.datetime.utcnow()
-            elif isinstance(int(), certConf["not_valid_before"]) or isinstance(
-                int, certConf["not_valid_after"]
+            elif isinstance(int(), certConf.get("not_valid_before")) or isinstance(
+                int, certConf.get("not_valid_after")
             ):
                 nvb = datetime.datetime.utcnow() + datetime.timedelta(
-                    days=certConf["not_valid_before"]
+                    days=certConf.get("not_valid_before")
                 )
             else:
                 logging.error(f'invalid value from {nvb}, should be of int or "now"')
@@ -152,10 +151,10 @@ class Conf:
                 sys.exit()
 
     def _checkCertName(self) -> None:
-        certs = self.general["certs"]
+        certs = self.general.get("certs")
         for cert in certs:
-            subjectName = cert["conf"]["subject_name"]
-            certName = cert["name"]
+            subjectName = cert.get("conf").get("subject_name")
+            certName = cert.get("name")
             if certName != subjectName:
                 logging.error(
                     f"certname {certName} has to be the same than the subject name, found {subjectName}"
@@ -164,22 +163,21 @@ class Conf:
                 sys.exit()
 
     def _checkKeyUsage(self) -> None:
-        certs = self.general["certs"]
+        certs = self.general.get("certs")
         for cert in certs:
             certName = cert.get("name")
-            try:
-                for ku in cert["conf"]["extensions"]["KeyUsage"]["items"]:
-                    if ku.lower() not in self.keyUsage:
-                        logging.error(
-                            f"{ku} not found in allowed keyUsage for {certName}"
-                        )
-                        raise ValueError()
-                        sys.exit()
-            except Exception:
-                logging.error(f"can't find KeyUsages params for {certName}")
+            for ku in (
+                cert.get("conf").get("extensions").get("KeyUsage").get("items")
+            ):
+                if ku.lower() not in self.keyUsage:
+                    logging.error(
+                        f"{ku} not found in allowed keyUsage for {certName}"
+                    )
+                    raise ValueError()
+                    sys.exit()
 
     def _checkExtendedKeyUsage(self) -> None:
-        certs = self.general["certs"]
+        certs = self.general.get("certs")
         for cert in certs:
             if cert.get("conf").get("extensions").get("ExtendedKeyUsage"):
                 for ku in (
@@ -194,7 +192,7 @@ class Conf:
                         sys.exit()
 
     def _checkEncoding(self) -> None:
-        certs = self.general["certs"]
+        certs = self.general.get("certs")
         for cert in certs:
             certName = cert.get("name")
             enc_priv = cert.get("conf").get("private_key").get("encoding")
@@ -209,7 +207,7 @@ class Conf:
                 sys.exit()
 
     def _checkSerialization(self) -> None:
-        certs = self.general["certs"]
+        certs = self.general.get("certs")
         for cert in certs:
             certName = cert.get("name")
             serialization = cert.get("conf").get("private_key").get("serialization")

@@ -202,12 +202,13 @@
                         ],
                         "type": "ED25519"
                     },
-                    "encoding": "PEM",
-                    "serialization": "PKCS8",
+                    "encoding": "DER",
+                    "serialization": "OpenSSH",
                     "sign_with_alg": "sha512"
                 },
                 "public_key": {
-                    "encoding": "PEM"
+                    "encoding": "OpenSSH",
+                    "format": "OpenSSH"
                 },
                 "subject_name": "test_leaf",
                 "issuer_name": "intermediate-ca",

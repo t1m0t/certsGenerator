@@ -6,8 +6,8 @@ from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network
 
 from cryptography import x509
 
-from certsGenerator.conf import Conf
-from certsGenerator.helpers import loadFile
+from src.conf import Conf
+from src.helpers import loadFile
 
 
 class CertBuilder:

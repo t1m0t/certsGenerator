@@ -1,6 +1,6 @@
 import unittest
 
-from certsGenerator.main import CertsGenerator
+from src.main import CertsGenerator
 from tests.helpers import delDir
 
 
@@ -19,6 +19,12 @@ class MainTests(unittest.TestCase):
 
     def test_3_ed25119_cert(self) -> None:
         CONF_FILE = "tests/confs/test3.json"
+        CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
+
+        delDir("certs")
+
+    def test_4_ssh(self) -> None:
+        CONF_FILE = "tests/confs/test4.json"
         CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
 
         delDir("certs")
