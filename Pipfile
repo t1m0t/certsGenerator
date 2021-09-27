@@ -4,9 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-orjson = "*"
+orjson = "==3.6.3"
 cryptography = "==3.4.8"
-click = "*"
+click = "==8.0.1"
 
 [dev-packages]
 pipenv = "*"
