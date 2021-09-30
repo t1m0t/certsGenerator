@@ -1,0 +1,168 @@
+{
+    "defaults": {
+        "file_extentions": {
+            "private_key": "key",
+            "certificate_signing_request": "csr",
+            "signed_certificate": "crt"
+        }
+    },
+    "options": {
+        "verify_all_chain": "false"
+    },
+    "certs": [
+        {
+            "name": "intermediate-ca",
+            "conf": {
+                "type": "intermediate",
+                "storage": {
+                    "path": "certs/intermediate-ca",
+                    "fileName": "intermediate-ca"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "RSA"
+                        ],
+                        "type": "RSA",
+                        "params": {
+                            "key_size": 4096
+                        }
+                    },
+                    "encoding": "PEM",
+                    "serialization": "PKCS8",
+                    "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "PEM"
+                },
+                "subject_name": "intermediate-ca",
+                "issuer_name": "root-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 1750,
+                "subject_name_attributes": {
+                    "COUNTRY_NAME": "FR",
+                    "STATE_OR_PROVINCE_NAME": "Val d'Oise",
+                    "LOCALITY_NAME": "Argenteuil",
+                    "ORGANIZATION_NAME": "smartius",
+                    "COMMON_NAME": "intermediate-ca"
+                },
+                "extensions": {
+                    "SubjectAlternativeName": {
+                        "items": [
+                            {
+                                "DNSName": "localhost"
+                            },
+                            {
+                                "DNSName": "dev.local"
+                            },
+                            {
+                                "IPAddressV4": "127.0.0.1"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "KeyUsage": {
+                        "items": [
+                            "key_cert_sign",
+                            "crl_sign",
+                            "digital_signature"
+                        ],
+                        "critical": "true"
+                    },
+                    "ExtendedKeyUsage": {
+                        "items": [
+                            "server_auth",
+                            "client_auth"
+                        ],
+                        "critical": "true"
+                    },
+                    "BasicConstraints": {
+                        "ca": "true",
+                        "path_length": "none",
+                        "critical": "true"
+                    },
+                    "NameConstraints": {
+                        "permitted_subtrees": [
+                            {
+                                "type": "DNSName",
+                                "value": "dev.local"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "SubjectKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    },
+                    "AuthorityKeyIdentifier": {
+                        "set": "true",
+                        "critical": "false"
+                    }
+                }
+            }
+        },
+        {
+            "name": "test_leaf",
+            "conf": {
+                "type": "leaf",
+                "storage": {
+                    "path": "certs/test_leaf",
+                    "fileName": "test_leaf"
+                },
+                "private_key": {
+                    "algorithm": {
+                        "name": [
+                            "ED25519"
+                        ],
+                        "type": "ED25519"
+                    },
+                    "encoding": "PEM",
+                    "serialization": "PKCS8",
+                    "sign_with_alg": "sha512"
+                },
+                "public_key": {
+                    "encoding": "PEM"
+                },
+                "subject_name": "test_leaf",
+                "issuer_name": "intermediate-ca",
+                "version": 3,
+                "not_valid_before": "now",
+                "not_valid_after": 1750,
+                "subject_name_attributes": {
+                    "COUNTRY_NAME": "FR",
+                    "STATE_OR_PROVINCE_NAME": "state",
+                    "LOCALITY_NAME": "town",
+                    "ORGANIZATION_NAME": "aname",
+                    "COMMON_NAME": "test_leaf"
+                },
+                "extensions": {
+                    "SubjectAlternativeName": {
+                        "items": [
+                            {
+                                "DNSName": "localhost"
+                            },
+                            {
+                                "DNSName": "dev.local"
+                            },
+                            {
+                                "IPAddressV4": "127.0.0.1"
+                            }
+                        ],
+                        "critical": "false"
+                    },
+                    "KeyUsage": {
+                        "items": [
+                            "data_encipherment"
+                        ],
+                        "critical": "true"
+                    },
+                    "BasicConstraints": {
+                        "ca": "false",
+                        "critical": "true"
+                    }
+                }
+            }
+        }
+    ]
+}

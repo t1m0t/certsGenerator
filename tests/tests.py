@@ -28,3 +28,12 @@ class MainTests(unittest.TestCase):
         CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
 
         delDir("certs")
+
+    def test_5_partial_chain_check(self) -> None:
+        CONF_FILE = "tests/confs/test5_1.json"
+        CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
+
+        CONF_FILE = "tests/confs/test5_2.json"
+        CertsGenerator(pathToConf=CONF_FILE, debug=True).run()
+
+        delDir("certs")

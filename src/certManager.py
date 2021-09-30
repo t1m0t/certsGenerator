@@ -115,7 +115,7 @@ class CertManager:
                         private_key_bytes, password=password
                     )
                 # this use case is not supposed to be happen as ssh private key is only written
-                # when created once (no further use)
+                # when created once (no further use, as it is the case for leaf certs)
                 # elif enc.to_lower() == "openssh":
                 #    private_key = serialization.load_ssh_private_key(
                 #        private_key_bytes, password=password
@@ -186,81 +186,89 @@ class CertManager:
         self._checkSignature(subjectName=certName, issuerName=issuer_name)
 
     def _checkSignature(self, subjectName: str, issuerName: str) -> None:
-        # conf
-        logging.info(f"checking signature of {subjectName}")
-        issuerCrtFile = self.conf.getCertPath(
-            certName=issuerName, ext="signed_certificate"
-        )
-        subjectCrtFile = self.conf.getCertPath(
-            certName=subjectName, ext="signed_certificate"
-        )
+        logging.info(f"checking signature of {subjectName} from issuer {issuerName}")
 
-        # load certificates files
-        issuer_public_key = b""
-        subject_public_key = b""
-        if issuerCrtFile != subjectCrtFile:
-            issuer_public_key = loadFile(fileName=issuerCrtFile)
-            subject_public_key = loadFile(fileName=subjectCrtFile)
+        if self.conf.general.get("options", None) is not None:
+            if (
+                self.conf.general.get("options").get("verify_all_chain", None)
+                == "false"
+            ):
+                logging.info(
+                    "Skipping signature check as verify_all_chain = false in conf"
+                )
         else:
-            subject_public_key = loadFile(fileName=subjectCrtFile)
-            issuer_public_key = subject_public_key
+            issuerCrtFile = self.conf.getCertPath(
+                certName=issuerName, ext="signed_certificate"
+            )
+            subjectCrtFile = self.conf.getCertPath(
+                certName=subjectName, ext="signed_certificate"
+            )
+            # load certificates files
+            issuer_public_key = b""
+            subject_public_key = b""
+            if issuerCrtFile != subjectCrtFile:
+                issuer_public_key = loadFile(fileName=issuerCrtFile)
+                subject_public_key = loadFile(fileName=subjectCrtFile)
+            else:
+                subject_public_key = loadFile(fileName=subjectCrtFile)
+                issuer_public_key = subject_public_key
 
-        # extract issuer and subject public keys
-        issuer_cert_conf = self.conf.getCert(certName=issuerName)
-        subject_cert_conf = self.conf.getCert(certName=subjectName)
-        issuer_enc = issuer_cert_conf.get("public_key").get("encoding")
-        subj_enc = subject_cert_conf.get("public_key").get("encoding")
-        cert_to_check = ""
+            # extract issuer and subject public keys
+            issuer_cert_conf = self.conf.getCert(certName=issuerName)
+            subject_cert_conf = self.conf.getCert(certName=subjectName)
+            issuer_enc = issuer_cert_conf.get("public_key").get("encoding")
+            subj_enc = subject_cert_conf.get("public_key").get("encoding")
+            cert_to_check = ""
 
-        if issuer_enc.lower() == "openssh" or subj_enc.lower() == "openssh":
-            logging.info("OpenSSH public keys signatures are not checked")
-            pass
-        else:
-            if issuer_enc == "PEM":
-                issuer_public_key = x509.load_pem_x509_certificate(
-                    issuer_public_key
-                ).public_key()
-            elif issuer_enc == "DER":
-                issuer_public_key = x509.load_der_x509_certificate(
-                    issuer_public_key
-                ).public_key()
+            if issuer_enc.lower() == "openssh" or subj_enc.lower() == "openssh":
+                logging.info("OpenSSH public keys signatures are not checked")
+                pass
+            else:
+                if issuer_enc == "PEM":
+                    issuer_public_key = x509.load_pem_x509_certificate(
+                        issuer_public_key
+                    ).public_key()
+                elif issuer_enc == "DER":
+                    issuer_public_key = x509.load_der_x509_certificate(
+                        issuer_public_key
+                    ).public_key()
 
-            if subj_enc == "PEM":
-                cert_to_check = x509.load_pem_x509_certificate(subject_public_key)
-            elif subj_enc == "DER":
-                cert_to_check = x509.load_der_x509_certificate(subject_public_key)
+                if subj_enc == "PEM":
+                    cert_to_check = x509.load_pem_x509_certificate(subject_public_key)
+                elif subj_enc == "DER":
+                    cert_to_check = x509.load_der_x509_certificate(subject_public_key)
 
-            try:
-                # checking now
-                if isinstance(issuer_public_key, rsa.RSAPublicKey):
-                    issuer_public_key.verify(
-                        cert_to_check.signature,
-                        cert_to_check.tbs_certificate_bytes,
-                        self.conf.RSApaddingMapping["PKCS1v15"](),
-                        cert_to_check.signature_hash_algorithm,
-                    )
-                elif isinstance(issuer_public_key, ec.EllipticCurvePublicKey):
-                    issuer_public_key.verify(
-                        cert_to_check.signature,
-                        cert_to_check.tbs_certificate_bytes,
-                        ec.ECDSA(cert_to_check.signature_hash_algorithm),
-                    )
-                elif isinstance(issuer_public_key, ed25519.Ed25519PublicKey):
-                    issuer_public_key.verify(
-                        cert_to_check.signature,
-                        cert_to_check.tbs_certificate_bytes,
-                    )
-                else:
-                    logging.error(
-                        f"Failed to verify due to unsupported algorythm {type(cert_to_check.public_key())}"
-                    )
-                    raise ValueError()
+                try:
+                    # checking now
+                    if isinstance(issuer_public_key, rsa.RSAPublicKey):
+                        issuer_public_key.verify(
+                            cert_to_check.signature,
+                            cert_to_check.tbs_certificate_bytes,
+                            self.conf.RSApaddingMapping["PKCS1v15"](),
+                            cert_to_check.signature_hash_algorithm,
+                        )
+                    elif isinstance(issuer_public_key, ec.EllipticCurvePublicKey):
+                        issuer_public_key.verify(
+                            cert_to_check.signature,
+                            cert_to_check.tbs_certificate_bytes,
+                            ec.ECDSA(cert_to_check.signature_hash_algorithm),
+                        )
+                    elif isinstance(issuer_public_key, ed25519.Ed25519PublicKey):
+                        issuer_public_key.verify(
+                            cert_to_check.signature,
+                            cert_to_check.tbs_certificate_bytes,
+                        )
+                    else:
+                        logging.error(
+                            f"Failed to verify due to unsupported algorythm {type(cert_to_check.public_key())}"
+                        )
+                        raise ValueError()
+                        sys.exit()
+                except ValueError as e:
+                    logging.error(f"Signature verification failed: {e}")
                     sys.exit()
-            except ValueError as e:
-                logging.error(f"Signature verification failed: {e}")
-                sys.exit()
 
-            logging.info(f"Signature validation success for {subjectName}")
+                logging.info(f"Signature validation success for {subjectName}")
 
     def _getParamsForPrivateBytes(
         self, certConf: Dict
