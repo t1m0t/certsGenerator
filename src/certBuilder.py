@@ -105,7 +105,6 @@ class CertBuilder:
             else:
                 logging.error(f"can't find SubjectAlternativeName {item}")
                 raise ValueError()
-                sys.exit()
             elList.append(el)
 
         self.builder = self.builder.add_extension(
@@ -214,7 +213,6 @@ class CertBuilder:
                 else:
                     logging.error(f"can't find issuer crt file {issuerCrtFile}")
                     raise ValueError()
-                    sys.exit()
 
                 isCritical = True if extConf.get("critical") == "true" else False
 
@@ -229,7 +227,6 @@ class CertBuilder:
                     "AuthorityKeyIdentifier can't be set because subject_name == issuer_name (self-signed), please correct the configuration"
                 )
                 raise ValueError()
-                sys.exit()
 
     def _setExtensions(self) -> None:
         certConf = self.conf.getCert(certName=self.certName)
@@ -253,7 +250,6 @@ class CertBuilder:
                 else:
                     logging.error(f"incorrect or not implemented extension {k}")
                     raise ValueError()
-                    sys.exit()
 
     def _setAll(self) -> None:
         # set the cert configuration

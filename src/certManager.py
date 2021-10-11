@@ -88,6 +88,7 @@ class CertManager:
         self, certName: str
     ) -> Union[ec.EllipticCurvePrivateKey, rsa.RSAPrivateKey]:
         certConf = self.conf.getCert(certName=certName)
+
         if "storage" not in certConf.keys():
             raise ValueError(f"key not found in {certConf}")
             sys.exit()
@@ -147,7 +148,6 @@ class CertManager:
             else:
                 logging.error(f"Key type not found or implemented {key_type}")
                 raise ValueError()
-                sys.exit()
 
             self.storePrivateKey(certName=certName, private_key=private_key)
         return private_key
@@ -188,14 +188,21 @@ class CertManager:
     def _checkSignature(self, subjectName: str, issuerName: str) -> None:
         logging.info(f"checking signature of {subjectName} from issuer {issuerName}")
 
-        if self.conf.general.get("options", None) is not None:
+        # set to true as default
+        verify_cert_signature: bool = True
+
+        # in case verify_all_chain = false and can't find cert of issuer
+        if (self.conf.general.get("options", None) is not None) and (
+            self.conf.general.get("options").get("verify_all_chain", None) == "false"
+        ):
             if (
-                self.conf.general.get("options").get("verify_all_chain", None)
-                == "false"
+                self.conf.getCertPath(certName=issuerName, ext="signed_certificate")
+                is None
             ):
-                logging.info(
-                    "Skipping signature check as verify_all_chain = false in conf"
-                )
+                verify_cert_signature = False
+
+        if verify_cert_signature is False:
+            logging.info("Skipping signature check as verify_all_chain = false in conf")
         else:
             issuerCrtFile = self.conf.getCertPath(
                 certName=issuerName, ext="signed_certificate"

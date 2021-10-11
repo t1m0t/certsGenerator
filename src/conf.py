@@ -30,17 +30,17 @@ class Conf:
         self._checkRedundantNames()
         self._checkSerialization()
 
-    def getCert(self, certName: str) -> Dict[Any, Any]:
+    def getCert(self, certName: str) -> Union[Dict[Any, Any], None]:
         certs = self.general["certs"]
         conf = {}
         for cert in certs:
             if cert["name"] == certName:
                 conf = cert
                 break
+
         if not (len(conf) > 0):
-            logging.error(f"cert {certName} not found")
-            raise ValueError()
-            sys.exit()
+            return None
+
         return conf.get("conf")
 
     def get(self, certName: str, field: str, isExt: bool = True) -> dict:
@@ -52,20 +52,19 @@ class Conf:
         else:
             logging.error(f"{field} not found in conf")
             raise ValueError()
-            sys.exit()
 
-    def getCertPath(self, certName: str, ext: str) -> str:
+    def getCertPath(self, certName: str, ext: str) -> Union[str, None]:
         certConf = self.getCert(certName)
-        path = certConf.get("storage").get("path")  # type: ignore
-        fileName = certConf.get("storage").get("fileName")  # type: ignore
-        ext = self.fileExtenstions.get(ext)  # type: ignore
-        certpath = f"{path}/{fileName}.{ext}"
-        return certpath
+        if certConf is not None:
+            path = certConf.get("storage").get("path")  # type: ignore
+            fileName = certConf.get("storage").get("fileName")  # type: ignore
+            ext = self.fileExtenstions.get(ext)  # type: ignore
+            certpath = f"{path}/{fileName}.{ext}"
 
-    def getPath(self, certName: str) -> str:
-        certConf = self.getCert(certName)
-        path = certConf.get("storage").get("path")  # type: ignore
-        return path
+            return certpath
+        else:
+            print("cant fint cert path")
+            return None
 
     def getPassphrase(self, certName: str) -> Union[bytes, None]:
         # get passphrase
@@ -114,7 +113,6 @@ class Conf:
                     f"Configuration file error: can't find public key encoding for {certName}, {e}"
                 )
                 raise ValueError()
-                sys.exit()
 
     def _checkRedundantNames(self) -> None:
         # check if no redundant certs names
@@ -129,7 +127,6 @@ class Conf:
             if v > 1:
                 logging.error(f"Configuration file error: {k} appears {v} times")
                 raise ValueError()
-                sys.exit()
 
     def _checkNotValidDate(self) -> None:
         # check not_valid_before not_valid_after
@@ -147,7 +144,6 @@ class Conf:
             else:
                 logging.error(f'invalid value from {nvb}, should be of int or "now"')
                 raise ValueError()
-                sys.exit()
 
     def _checkCertName(self) -> None:
         certs = self.general.get("certs")
@@ -159,7 +155,6 @@ class Conf:
                     f"certname {certName} has to be the same than the subject name, found {subjectName}"
                 )
                 raise ValueError()
-                sys.exit()
 
     def _checkKeyUsage(self) -> None:
         certs = self.general.get("certs")
@@ -169,7 +164,6 @@ class Conf:
                 if ku.lower() not in self.keyUsage:
                     logging.error(f"{ku} not found in allowed keyUsage for {certName}")
                     raise ValueError()
-                    sys.exit()
 
     def _checkExtendedKeyUsage(self) -> None:
         certs = self.general.get("certs")
@@ -184,7 +178,6 @@ class Conf:
                     if ku.upper() not in self.extendedKeyUsageMapping.keys():
                         logging.error(f"{ku} not found in allowed ExtendedKeyUsage")
                         raise ValueError()
-                        sys.exit()
 
     def _checkEncoding(self) -> None:
         certs = self.general.get("certs")
@@ -199,7 +192,6 @@ class Conf:
                     f"encoding not found for {certName} in allowed encoding formats"
                 )
                 raise ValueError()
-                sys.exit()
 
     def _checkSerialization(self) -> None:
         certs = self.general.get("certs")
@@ -211,7 +203,6 @@ class Conf:
                     f"serialization not found for private key of {certName} in allowed serialization formats"
                 )
                 raise ValueError()
-                sys.exit()
 
     nameAttributesMapping = {
         "COUNTRY_NAME": NameOID.COUNTRY_NAME,
